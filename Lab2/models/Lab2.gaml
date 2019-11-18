@@ -31,10 +31,18 @@ species FestivalGuest skills: [fipa]{
 	reflex reply when: (!empty(cfps)){
 		message proposalFromInitiatior <- (cfps at 0);
 		
-		//do propose with: (message: proposalFromInitiatior, contents: ['I will']);
 		
-		write 'inform initiator of the failure';
-		do refuse (message: proposalFromInitiatior, contents: ['The bed is broken']);
+		
+		if(int(proposalFromInitiatior.contents[1]) < maxi){
+			write 'A';
+			do propose with: (message: proposalFromInitiatior, contents: ['I buy for ' + maxi]);
+		}
+		else{
+			write 'B';
+			do refuse (message: proposalFromInitiatior, contents: ['I reject beca']);
+			
+		}
+		
 	}
 
 	aspect default{
