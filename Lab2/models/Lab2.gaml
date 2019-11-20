@@ -70,14 +70,15 @@ species Auctioneer  skills: [fipa]{
 			}
 			
 			if (price < minimum){
-				write 'Price below minimum: ' + price + ' < ' + minimum;
-				write 'Starting bet again';
+				write '************ Price below minimum: ' + price + ' < ' + minimum + ' ************';
+				write '---------------- Starting bet again ----------------';
 				sold <- false;
 				price <- rnd(5000,10000);	
 			}
 		
 			counter <- 0;
 		
+			write '--------------------------------------------';
 			//inform
 			write 'Auctioneer - Sends inform message to all participants';
 			do start_conversation (to:: list(guests), protocol:: 'fipa-contract-net', performative:: 'inform', contents:: ['Auction is beginning']);
@@ -89,7 +90,7 @@ species Auctioneer  skills: [fipa]{
 
 	}
 
-	reflex read_agree_message when: !(empty(proposes)){
+	reflex read_proposes when: !(empty(proposes)){
 		loop p over: proposes{
 			counter <- counter + 1;
 			
@@ -99,7 +100,7 @@ species Auctioneer  skills: [fipa]{
 				sold<- true;
 			}
 			else{
-				write 'Auctioneer - Rejected ' + agent(p.sender).name + ' for the price of '  + string(self.price);
+				write 'Auctioneer - Rejected ' + agent(p.sender).name;
 				do reject_proposal (message: p, contents: ['Not sold']);			
 			}
 		}
