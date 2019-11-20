@@ -25,12 +25,11 @@ species FestivalGuest skills: [fipa]{
 	int maxi;
 	
 	init{
-		maxi <- rnd(10000);
+		maxi <- rnd(8000);
 	}
 	
 	reflex reply when: (!empty(cfps)){
 		message proposalFromInitiatior <- (cfps at 0);
-		
 		
 		
 		if(int(proposalFromInitiatior.contents[1]) < maxi){
@@ -55,14 +54,18 @@ species Auctioneer  skills: [fipa]{
 	int price;
 	bool sold;
 	list<FestivalGuest> guests;
+	int counter;
+	int minimum;
 
 	init{
 		sold <- false;
 		price <- rnd(5000,10000);
 		guests <- list(FestivalGuest);
+		counter <-3;
+		minimum <- 4000;
 	}
 
-	reflex send_request when: (time=1){
+	reflex send_request when: counter = length(guests) and mod(time,10) = 0{
 		
 			if(sold = true){
 				write 'Starting bet again';
@@ -72,6 +75,8 @@ species Auctioneer  skills: [fipa]{
 			else{
 				price <- price - 500;
 			}
+		
+			counter <- 0;
 		
 			//inform
 			write 'Auctioneer sends inform message to all participants';
@@ -86,13 +91,20 @@ species Auctioneer  skills: [fipa]{
 
 	reflex read_agree_message when: !(empty(proposes)){
 		loop p over: proposes{
+			counter <- counter + 1;
+			
 			write '******' + string(p.sender) + ' buys for ' + string(self.price);
+			do accept_proposal (message: p, contents: ['Sold!']);
+			sold<- true;
 		}
 	}
 	
 	reflex read_failure_message when: !(empty(refuses)){
 		loop r over: refuses{
+			counter <- counter + 1;
+			
 			write '@@@@@' + string(r.sender) + ' rejects ' + string(self.price);
+			do reject_proposal (message: r, contents: ['Bye']);
 		}
 	}
 
