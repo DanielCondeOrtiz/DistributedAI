@@ -29,18 +29,11 @@ species FestivalGuest skills: [fipa]{
 	}
 	
 	reflex reply when: (!empty(cfps)){
-		message proposalFromInitiatior <- (cfps at 0);
+		message proposalFromInitiatior <- (cfps[0]);
 		
-		
-		if(int(proposalFromInitiatior.contents[1]) < maxi){
-			write 'A';
-			do propose with: (message: proposalFromInitiatior, contents: ['I buy for ' + maxi]);
-		}
-		else{
-			write 'B';
-			do refuse (message: proposalFromInitiatior, contents: ['I reject beca']);
+		write self.name + ' - I propose to buy for: ' + maxi; 
 			
-		}
+		do propose with: (message: proposalFromInitiatior, contents: ['I buy for ' + maxi, maxi]);
 		
 	}
 
@@ -61,30 +54,37 @@ species Auctioneer  skills: [fipa]{
 		sold <- false;
 		price <- rnd(5000,10000);
 		guests <- list(FestivalGuest);
-		counter <-3;
+		counter <-length(guests);
 		minimum <- 4000;
 	}
 
 	reflex send_request when: counter = length(guests) and mod(time,10) = 0{
 		
 			if(sold = true){
-				write 'Starting bet again';
+				write '---------------- Starting bet again ----------------';
 				sold <- false;
 				price <- rnd(5000,10000);				
 			}
 			else{
 				price <- price - 500;
 			}
+			
+			if (price < minimum){
+				write 'Price below minimum: ' + price + ' < ' + minimum;
+				write 'Starting bet again';
+				sold <- false;
+				price <- rnd(5000,10000);	
+			}
 		
 			counter <- 0;
 		
 			//inform
-			write 'Auctioneer sends inform message to all participants';
+			write 'Auctioneer - Sends inform message to all participants';
 			do start_conversation (to:: list(guests), protocol:: 'fipa-contract-net', performative:: 'inform', contents:: ['Auction is beginning']);
 
 
 			//cfp
-			write 'Selling for: ' + string(self.price);
+			write 'Auctioneer - Selling for: ' + string(self.price);
 			do start_conversation (to:: list(guests), protocol:: 'fipa-contract-net', performative:: 'cfp', contents:: ['Sell for price ' + self.price, self.price]);
 
 	}
@@ -93,21 +93,18 @@ species Auctioneer  skills: [fipa]{
 		loop p over: proposes{
 			counter <- counter + 1;
 			
-			write '******' + string(p.sender) + ' buys for ' + string(self.price);
-			do accept_proposal (message: p, contents: ['Sold!']);
-			sold<- true;
+			if(int(p.contents[1]) > price and !sold){
+				write 'Auctioneer - Sold to ' + agent(p.sender).name + ' for the price of '  + string(self.price);
+				do accept_proposal (message: p, contents: ['Sold!']);
+				sold<- true;
+			}
+			else{
+				write 'Auctioneer - Rejected ' + agent(p.sender).name + ' for the price of '  + string(self.price);
+				do reject_proposal (message: p, contents: ['Not sold']);			
+			}
 		}
 	}
 	
-	reflex read_failure_message when: !(empty(refuses)){
-		loop r over: refuses{
-			counter <- counter + 1;
-			
-			write '@@@@@' + string(r.sender) + ' rejects ' + string(self.price);
-			do reject_proposal (message: r, contents: ['Bye']);
-		}
-	}
-
 	aspect default{
 		draw cube(8) at: location color: #blue;
 	}
