@@ -56,8 +56,12 @@ species Queen skills: [fipa]{
 			
 			
 			if found = true{
-				write self.name + ' found a place! ' + x + ',' + y;
+				write self.name + ' found a placeeee! ' + x + ',' + y;
 				self.cell <- chess_board[x,y];
+				
+				if cell = nil{
+					write 'aaaa';
+				}
 				location <- self.cell.location;
 			}
 			else{

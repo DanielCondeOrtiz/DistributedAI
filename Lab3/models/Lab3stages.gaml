@@ -9,11 +9,12 @@ model Lab3stages
 global {
 	/** Insert the global definitions, variables and actions here */
 	init{
-		create FestivalGuest number: 1{
+
+		create Stage number: 4{
 			
 		}
 		
-		create Stage number: 4{
+		create FestivalGuest number: 1{
 			
 		}
 		
@@ -25,41 +26,80 @@ species FestivalGuest skills: [fipa,moving]{
 	float lights;
 	float speakers;
 	float band;
+	float accesibility;
+	float people;
+	float field;
+	
+	float current_best;
 	
 	rgb color;
 	
 	Stage selected;
 	
+	list<Stage> stages;
+	
 	init{
 		lights <- rnd(10)/10;
 		speakers <- rnd(10)/10;
 		band <- rnd(10)/10;
+		accesibility <- rnd(10)/10;
+		people <- rnd(10)/10;
+		field <- rnd(10)/10;
+		
+		
+		current_best <-0.0;
 		
 		selected <- nil;
 		
 		color <- #red;
-	}
-	
-	
-	reflex change_stages when: selected = nil or selected.concert_time = 0{
-		selected <- one_of(Stage);
 		
-		if selected.order = 0{
-			color <- #red;
-		}
-		else if selected.order = 1{
-			color <- #cyan;
-		}
-		else if selected.order = 2{
-			color <- #green;
-		}
-		else{
-			color <- #yellow;
+		stages <-list(Stage);
+		
+		write length(stages);
+	}
+	
+	reflex asking_for_info when: selected = nil or selected.concert_time = 0{
+		current_best <-0.0;
+		
+		//cfp
+		write self.name + ' asking stages';
+		do start_conversation (to:: list(stages), protocol:: 'fipa-contract-net', performative:: 'cfp', contents:: ['What concerts do you have?']);
+	}
+	
+	reflex read_proposes when: !(empty(proposes)){
+		loop p over: proposes{
+			
+			float tmp <- float(p.contents[1])*lights + float(p.contents[2])*speakers + float(p.contents[3])*band  + float(p.contents[4])*accesibility + float(p.contents[5])*people + float(p.contents[6])*field;
+			
+			if tmp > current_best{
+				current_best <- tmp;
+				selected <- p.sender;
+				do accept_proposal (message: p, contents: ['I\'m coming!']);
+				write self.name + ' New stage: ' + p.sender + ', value: ' + current_best;
+			}
+			else{
+				do reject_proposal (message: p, contents: ['No, sorry']);
+			}
+			
+			if selected.order = 0{
+				color <- #red;
+			}
+			else if selected.order = 1{
+				color <- #cyan;
+			}
+			else if selected.order = 2{
+				color <- #green;
+			}
+			else{
+				color <- #yellow;
+			}
+				
 		}
 	}
+	
 	
 	reflex goToStage when: selected != nil{
-		do goto (target: selected.location, speed: 2.0);
+		do goto (target: selected.location, speed: 1.5);
 	}
 
 
@@ -73,6 +113,9 @@ species Stage  skills: [fipa]{
 	float lights;
 	float speakers;
 	float band;
+	float accesibility;
+	float people;
+	float field;
 	
 	int concert_time;
 	
@@ -105,7 +148,9 @@ species Stage  skills: [fipa]{
 		lights <- rnd(10)/10;
 		speakers <- rnd(10)/10;
 		band <- rnd(10)/10;
-		
+		accesibility <- rnd(10)/10;
+		people <- rnd(10)/10;
+		field <- rnd(10)/10;
 		
 		concert_time <- rnd(50,100);
 	}
@@ -114,6 +159,13 @@ species Stage  skills: [fipa]{
 		concert_time <- concert_time -1;
 	}
 	
+	
+	reflex reply when: (!empty(cfps)){
+		message proposalFromInitiatior <- (cfps[0]);
+			
+		do propose with: (message: proposalFromInitiatior, contents: ['My values', lights, speakers, band,accesibility,people,field]);
+	
+	}
 	
 	
 	aspect default{
@@ -127,8 +179,8 @@ experiment Lab3stages type: gui {
 	/** Insert here the definition of the input and output of the model */
 	output {
 		display map type: opengl{
-			species FestivalGuest;
 			species Stage;
+			species FestivalGuest;
 		}
 	}
 }
