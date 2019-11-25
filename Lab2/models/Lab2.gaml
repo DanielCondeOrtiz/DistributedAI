@@ -9,7 +9,7 @@ model Lab2
 global {
 	/** Insert the global definitions, variables and actions here */
 	init{
-		create FestivalGuest number: 3{
+		create FestivalGuest number: 20{
 			
 		}
 		
