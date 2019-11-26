@@ -14,7 +14,7 @@ global {
 			
 		}
 		
-		create FestivalGuest number: 1{
+		create FestivalGuest number: 20{
 			
 		}
 		
@@ -71,6 +71,8 @@ species FestivalGuest skills: [fipa,moving]{
 			
 			float tmp <- float(p.contents[1])*lights + float(p.contents[2])*speakers + float(p.contents[3])*band  + float(p.contents[4])*accesibility + float(p.contents[5])*people + float(p.contents[6])*field;
 			
+			tmp <- tmp with_precision 2;
+			
 			if tmp > current_best{
 				current_best <- tmp;
 				selected <- p.sender;
@@ -105,6 +107,7 @@ species FestivalGuest skills: [fipa,moving]{
 
 	aspect default{
 		draw sphere(2) at: location color: color;
+		draw "Max: " + current_best at: location + {-3,3.2} color: #black font: font('Default', 12, #bold) ;
 	}
 	}
 
@@ -169,7 +172,10 @@ species Stage  skills: [fipa]{
 	
 	
 	aspect default{
-		draw cube(8) at: location color: #blue;
+		draw cube(7) at: location color: #blue;
+		draw "Values: " + lights + ',' + speakers + ',' + band + ',' + accesibility + ',' + people  + ',' + field at: location + {-10,-7} color: #black font: font('Default', 12, #bold) ;
+		draw "Time left: " + concert_time at: location + {-5,7} color: #black font: font('Default', 12, #bold) ;
+		
 	}
 }
 
