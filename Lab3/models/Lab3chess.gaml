@@ -66,7 +66,7 @@ species Queen skills: [fipa]{
 				}//queen is not me and it goes before me
 				
 				//If my position (x or y) collides with any of the preconditions -> BREAKS
-				if x = queen.cell.grid_x or y <= queen.cell.grid_y or (abs(x - queen.cell.grid_x) = abs(y - queen.cell.grid_y)) or (order != 0 and y > (queens[order -1].cell.grid_y + 1)){
+				if x = queen.cell.grid_x or y <= queen.cell.grid_y or (abs(x - queen.cell.grid_x) = abs(y - queen.cell.grid_y)){
 					found <- false;
 					break;
 				}//VALID POSITION
@@ -128,7 +128,7 @@ species Queen skills: [fipa]{
 					break;
 				}
 				
-				if queen.cell.grid_x = x or queen.cell.grid_y >= y or (abs(x - queen.cell.grid_x) = abs(y - queen.cell.grid_y)) or (order != 0 and y > (queens[order -1].cell.grid_y + 1)){
+				if queen.cell.grid_x = x or queen.cell.grid_y >= y or (abs(x - queen.cell.grid_x) = abs(y - queen.cell.grid_y)){
 					found <- false;
 					break;
 				}
