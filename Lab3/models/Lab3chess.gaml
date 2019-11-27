@@ -9,7 +9,7 @@ model Lab3chess
 global {
 	/** Insert the global definitions, variables and actions here */
 	
-	int N <- 6;
+	int N <- 4;
 			
 	init{	
 		create Queen number: N{
@@ -31,7 +31,7 @@ species Queen skills: [fipa]{
 	init{
 		queens <- list(Queen);
 		cell <- nil;
-		location <- {-10,-10,-10};
+		location <- {-2,-2,-2};
 		order <- int(self);
 		
 		waiting_for_reply <- false;
@@ -45,20 +45,25 @@ species Queen skills: [fipa]{
 		
 		write self.name + ' looking for a place'; 
 		
+		//loop for searching for cells
 		loop while: found = false{
 			
 			found <- true;
+			
+			//loop for checking predecessing queens' position
 			loop queen over: queens{
 				
+				//If actual queen I'm checking goes before me or is me -> BREAK
 				if queen.order >= self.order{
 					break;
-				}
+				}//queen is not me and it goes before me
 				
-				if queen.cell.grid_x = x or queen.cell.grid_y = y or (abs(queen.cell.grid_x - x) = abs(queen.cell.grid_y - y)){
+				//If my position (x or y) collides with any of the preconditions -> BREAKS
+				if x = queen.cell.grid_x or y = queen.cell.grid_y or (abs(x - queen.cell.grid_x) = abs(y - queen.cell.grid_y)){
 					found <- false;
 					break;
-				}
-			}
+				}//VALID POSITION
+			}//VALID POSITION
 			
 			
 			if found = true{
@@ -71,7 +76,7 @@ species Queen skills: [fipa]{
 				//Moving one cell right
 				x <- x +1;
 				if x = N{
-					x <- 1;
+					x <- 0;
 					y <- y +1;
 				}
 				
@@ -107,11 +112,10 @@ species Queen skills: [fipa]{
 		
 		cell<-nil;
 		
-		loop while: found = false{
-			
+		loop while: found = false{	
 			
 			if x = N{
-				x <- 1;
+				x <- 0;
 				y <- y +1;
 			}
 			
@@ -164,7 +168,7 @@ species Queen skills: [fipa]{
 	
 	reflex read_agree when: !(empty(agrees)){
 		cell <- nil;
-		
+		location <- {-10,-10,-10};
 		waiting_for_reply <- false;
 		
 		loop a over: agrees{
