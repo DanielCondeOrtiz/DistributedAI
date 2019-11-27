@@ -9,10 +9,10 @@ model Lab3chess
 global {
 	/** Insert the global definitions, variables and actions here */
 	
-	int N <- 4;
+	int N <- 8;
 			
 	init{	
-		create Queen number: N{
+		create Queen number: 10{
 			
 		}
 		
@@ -40,8 +40,15 @@ species Queen skills: [fipa]{
 	//Choosing cell
 	reflex find_cell when: cell = nil and (order = 0 or queens[order -1].cell != nil) and !waiting_for_reply{
 		bool found <- false;
+		
 		int x <- 0;
 		int y <- 0;
+		
+		if order != 0{
+			int x <- queens[order -1].cell.grid_x;
+			int y <- queens[order -1].cell.grid_y;
+		}
+
 		
 		write self.name + ' looking for a place'; 
 		
@@ -59,11 +66,11 @@ species Queen skills: [fipa]{
 				}//queen is not me and it goes before me
 				
 				//If my position (x or y) collides with any of the preconditions -> BREAKS
-				if x = queen.cell.grid_x or y = queen.cell.grid_y or (abs(x - queen.cell.grid_x) = abs(y - queen.cell.grid_y)){
+				if x = queen.cell.grid_x or y <= queen.cell.grid_y or (abs(x - queen.cell.grid_x) = abs(y - queen.cell.grid_y)){
 					found <- false;
 					break;
 				}//VALID POSITION
-			}//VALID POSITION
+			}
 			
 			
 			if found = true{
@@ -131,7 +138,7 @@ species Queen skills: [fipa]{
 					break;
 				}
 				
-				if queen.cell.grid_x = x or queen.cell.grid_y = y or (queen.cell.grid_x - x = queen.cell.grid_y - y){
+				if queen.cell.grid_x = x or queen.cell.grid_y >= y or (abs(x - queen.cell.grid_x) = abs(y - queen.cell.grid_y)){
 					found <- false;
 					break;
 				}
