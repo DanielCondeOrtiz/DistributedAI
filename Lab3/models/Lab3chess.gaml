@@ -55,10 +55,6 @@ species Queen skills: [fipa]{
 		//loop for searching for cells
 		loop while: found = false{
 			
-					
-		write x;
-		write y;
-			
 			found <- true;
 			
 			//loop for checking predecessing queens' position
