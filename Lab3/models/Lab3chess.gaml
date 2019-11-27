@@ -9,10 +9,10 @@ model Lab3chess
 global {
 	/** Insert the global definitions, variables and actions here */
 	
-	int N <- 8;
+	int N <- 20;
 			
 	init{	
-		create Queen number: 10{
+		create Queen number: N{
 			
 		}
 		
@@ -66,7 +66,7 @@ species Queen skills: [fipa]{
 				}//queen is not me and it goes before me
 				
 				//If my position (x or y) collides with any of the preconditions -> BREAKS
-				if x = queen.cell.grid_x or y <= queen.cell.grid_y or (abs(x - queen.cell.grid_x) = abs(y - queen.cell.grid_y)){
+				if x = queen.cell.grid_x or y <= queen.cell.grid_y or (abs(x - queen.cell.grid_x) = abs(y - queen.cell.grid_y)) or (order != 0 and y > (queens[order -1].cell.grid_y + 1)){
 					found <- false;
 					break;
 				}//VALID POSITION
@@ -138,7 +138,7 @@ species Queen skills: [fipa]{
 					break;
 				}
 				
-				if queen.cell.grid_x = x or queen.cell.grid_y >= y or (abs(x - queen.cell.grid_x) = abs(y - queen.cell.grid_y)){
+				if queen.cell.grid_x = x or queen.cell.grid_y >= y or (abs(x - queen.cell.grid_x) = abs(y - queen.cell.grid_y)) or (order != 0 and y > (queens[order -1].cell.grid_y + 1)){
 					found <- false;
 					break;
 				}
