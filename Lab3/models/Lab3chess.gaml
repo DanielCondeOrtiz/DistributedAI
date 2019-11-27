@@ -45,15 +45,19 @@ species Queen skills: [fipa]{
 		int y <- 0;
 		
 		if order != 0{
-			int x <- queens[order -1].cell.grid_x;
-			int y <- queens[order -1].cell.grid_y;
+			y <- int(queens[order -1].cell.grid_y) +1;
 		}
+
 
 		
 		write self.name + ' looking for a place'; 
 		
 		//loop for searching for cells
 		loop while: found = false{
+			
+					
+		write x;
+		write y;
 			
 			found <- true;
 			
@@ -83,11 +87,6 @@ species Queen skills: [fipa]{
 				//Moving one cell right
 				x <- x +1;
 				if x = N{
-					x <- 0;
-					y <- y +1;
-				}
-				
-				if y = N{
 					break;
 				}
 			}
@@ -122,11 +121,6 @@ species Queen skills: [fipa]{
 		loop while: found = false{	
 			
 			if x = N{
-				x <- 0;
-				y <- y +1;
-			}
-			
-			if y = N{
 				break;
 			}
 			
