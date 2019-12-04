@@ -39,6 +39,8 @@ species OTFan skills: [fipa,moving]{
 	float DisneyPref;
 	
 	float noiseResistance;
+	float generous;
+	int justBought;
 	
 	bool smokes;
 	
@@ -61,6 +63,8 @@ species OTFan skills: [fipa,moving]{
 		DisneyPref<- rnd(0,3)/10;
 
 		noiseResistance <- rnd(10)/10;
+		generous <- rnd(10)/10;
+		justBought<-0;
 		
 		child <-nil;
 		
@@ -101,11 +105,9 @@ species OTFan skills: [fipa,moving]{
 		}
 		 
 		//Leaves if too many DisneyFans eating in the same place
-		if (length(agents_at_distance(maxDistanceRadius) of_species (DisneySWFan) )) > 10 and !previouslyChecked{
+		if length(agents_at_distance(maxDistanceRadius) of_species (DisneySWFan) ) > 10 and !previouslyChecked{
 			
 			if agents_at_distance(maxDistanceRadius) of_species (DisneySWFan) one_matches (each.parent = self){
-				write self;
-				write self.child;
 				write self.name + ' too much Disney eating here! But my kid is here';
 				previouslyChecked<-true;
 			} else{
@@ -119,10 +121,29 @@ species OTFan skills: [fipa,moving]{
 				}
 				
 				previouslyChecked<-false;
+				justBought<-0;
 			}
-			
 
+		}
+		
+		if justBought > 0{
+			justBought<-justBought -1;
+		}
+		
+	}
+	
+	reflex replyBuy when: (!empty(requests)){
+		message proposalFromInitiatior <- (requests[0]);
+		
+		string tmp<-string(proposalFromInitiatior.contents);
+		
+		if flip(generous) and justBought < generous*10{
 			
+			justBought<- justBought+1;
+			
+			do agree with: (message: proposalFromInitiatior, contents: ['Okay!']);
+		}else{
+			do cancel with: (message: proposalFromInitiatior, contents: ['No, sorry']);
 		}
 		
 	}
@@ -140,7 +161,7 @@ species OTFan skills: [fipa,moving]{
 	
 	aspect default{
 		draw sphere(2) at: location color: #red;
-		draw circle(maxDistanceRadius) at: location color: #black;
+		//draw circle(maxDistanceRadius) at: location color: #black;
 		//draw 'O' at: location + {-0.8,0.8,5} color: #black font: font('Default', 20, #bold) ;
 		
 	}
@@ -162,6 +183,10 @@ species PrequelsFan skills: [fipa,moving]{
 	point targetPoint;
 	float maxDistancePoint;
 	float maxDistanceRadius;
+	
+	int timeSinceLastAsked;
+	int agreesNum;
+	
 
 	init{
 
@@ -180,6 +205,9 @@ species PrequelsFan skills: [fipa,moving]{
 		targetPoint <- nil;
 		maxDistancePoint<-6.0;
 		maxDistanceRadius<-10.0;
+		
+		timeSinceLastAsked<-0;
+		agreesNum<-0;
 	}
 	
 	reflex get_hungry when: hunger > 0{
@@ -194,11 +222,62 @@ species PrequelsFan skills: [fipa,moving]{
 	}
 	
 	reflex eating when: needToEat and location distance_to(cantineLocation) <= maxDistancePoint {
-		hunger <- hunger + 5;
+		hunger <- hunger + 10;
 		
 		if hunger > 200 and flip(0.8){
 			needToEat<- false;
-			targetPoint<-nil;			
+			targetPoint<-nil;		
+			timeSinceLastAsked<-0;	
+		}
+		
+		
+		if timeSinceLastAsked=0 and length( agents_at_distance(maxDistanceRadius) of_species (OTFan)) >0{
+			//request to buy
+			write self.name + ' asking OTFans if buying a drink';
+			do start_conversation (to:: agents_at_distance(maxDistanceRadius) of_species (OTFan), protocol:: 'fipa-request', performative:: 'request', contents:: ['Buy drink?']);
+		
+			timeSinceLastAsked<-1;
+			agreesNum<-0;
+		}else{
+			timeSinceLastAsked<-timeSinceLastAsked+1;
+			
+			if timeSinceLastAsked = 50{
+				timeSinceLastAsked<- 0;
+			}
+		}
+	}
+	
+	
+	reflex read_agrees when: !(empty(agrees)){
+		loop a over: agrees{
+			string tmp <- string(a.contents);
+			
+			agreesNum<- agreesNum + 1;
+			
+			//Calls for more
+			if agreesNum > length(agents_at_distance(maxDistanceRadius) of_species (PrequelsFan) ){
+				write self.name + ' calls for more people';
+				//do start_conversation (to:: [one_of(list(PrequelsFan) - agents_at_distance(maxDistanceRadius) of_species (PrequelsFan))], protocol:: 'fipa-contract-net', performative:: 'inform', contents:: ['Someone is buying drinks']);
+			}
+		}
+	}
+	
+	reflex read_informs when: !(empty(informs)){
+		loop i over: informs{
+			string tmp <- string(i.contents);
+			
+			//Someone is buying drinks
+			if agent(i.sender) = PrequelsFan{
+				write self.name + ' going for drinks!';
+				targetPoint <-cantineLocation;
+			}
+			
+		}
+	}
+	
+	reflex read_cancels when: !(empty(cancels)){
+		loop f over: cancels{
+			string tmp <- string(f.contents);
 		}
 	}
 	
@@ -238,6 +317,9 @@ species DisneySWFan skills: [fipa,moving]{
 	point targetPoint;
 	float maxDistancePoint;
 	float maxDistanceRadius;
+	
+	bool previouslyChecked;
+	
 
 	init{
 
@@ -272,6 +354,9 @@ species DisneySWFan skills: [fipa,moving]{
 		targetPoint <- nil;
 		maxDistancePoint<-5.0;
 		maxDistanceRadius<-10.0;
+		
+		previouslyChecked<-false;
+		
 	}
 	
 	reflex get_hungry when: hunger > 0{
@@ -286,11 +371,34 @@ species DisneySWFan skills: [fipa,moving]{
 	}
 	
 	reflex eating when: needToEat and location distance_to(cantineLocation) <= maxDistancePoint + 0.1{
-		hunger <- hunger + 5;
+		hunger <- hunger + 10;
 		
 		if hunger > 200 and flip(0.8){
 			needToEat<- false;
-			targetPoint<-nil;			
+			targetPoint<-nil;
+			
+			previouslyChecked<-false;	
+		}
+		 
+		//Leaves if too many DisneyFans eating in the same place
+		if length(agents_at_distance(maxDistanceRadius) of_species (PrequelsFan) ) > 10 and !previouslyChecked{
+			
+			if agents_at_distance(maxDistanceRadius) of_species (OTFan) one_matches (each.child = self){
+				write self.name + ' too much PrequelFan eating here! But my parent is here';
+				previouslyChecked<-true;
+			} else{
+				write self.name + ' too much PrequelFan eating here! I\'m leaving';
+			
+				needToEat<- false;
+				targetPoint<-nil;				
+				
+				if hunger < 100{
+					hunger<-100;
+				}
+				
+				previouslyChecked<-false;
+			}
+
 		}
 	}
 	
