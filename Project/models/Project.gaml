@@ -7,6 +7,24 @@
 model Project
 
 global {
+	
+	//Global parameters
+	bool logCantine<-true;
+	bool logStages<-true;
+	
+	bool logOTFans<-true;
+	bool logPrequelFans<-true;
+	bool logDisneySWFans<-true;
+	
+	bool logCantineOTFans<-true;
+	bool logCantinePrequelFans<-true;
+	bool logCantineDisneySWFans<-true;
+	
+	bool logStagesOTFans<-true;
+	bool logStagesPrequelFans<-true;
+	bool logStagesDisneySWFans<-true;
+	
+	
 	//Creation of agents
 	init{
 
@@ -50,6 +68,7 @@ species OTFan skills: [fipa,moving]{
 	float noiseResistance;
 	float generous;
 	int justBought;
+	bool previouslyChecked;
 	
 	bool smokes;
 	
@@ -65,14 +84,12 @@ species OTFan skills: [fipa,moving]{
 	point targetPoint;
 	float maxDistancePoint;
 	float maxDistanceRadius;
-	
-	bool previouslyChecked;
-
+	bool stopped;
 
 	//Initialization
 	init{
 
-		OTPref<- 10.0;
+		OTPref<- rnd(8,10)/10;
 		PreqPref<- rnd(0,5)/10;
 		DisneyPref<- rnd(0,3)/10;
 		
@@ -84,6 +101,7 @@ species OTFan skills: [fipa,moving]{
 		noiseResistance <- rnd(10)/10;
 		generous <- rnd(10)/10;
 		justBought<-0;
+		previouslyChecked<-false;
 		
 		child <-nil;
 		
@@ -98,8 +116,8 @@ species OTFan skills: [fipa,moving]{
 		targetPoint <- nil;
 		maxDistancePoint<-7.0;
 		maxDistanceRadius<-10.0;
+		stopped<-false;
 
-		previouslyChecked<-false;
 	}
 	
 	
@@ -135,11 +153,18 @@ species OTFan skills: [fipa,moving]{
 		if length(agents_at_distance(maxDistanceRadius) of_species (DisneySWFan) ) > 10 and !previouslyChecked{
 			
 			if agents_at_distance(maxDistanceRadius) of_species (DisneySWFan) one_matches (each.parent = self){
-				write self.name + ' too much Disney eating here! But my kid is here';
+				
+				if logCantine and logOTFans and logCantineOTFans{
+					write self.name + ' too much Disney eating here! But my kid is here';
+				}
+				
+				
 				previouslyChecked<-true;
 			} else{
-				write self.name + ' too much Disney eating here! I\'m leaving';
-			
+				if logCantine and logOTFans and logCantineOTFans{
+					write self.name + ' too much Disney eating here! I\'m leaving';
+				}
+				
 				needToEat<- false;
 				targetPoint<-nil;				
 				
@@ -220,8 +245,39 @@ species OTFan skills: [fipa,moving]{
 				currentShow<-p.sender;
 				targetPoint<-currentShow.location;
 				scoreCurrentShow<-score;
+				stopped<-false;
 			}
 		
+		}
+	}
+
+	//Checks if anyone in the surroundings is smoking and, if so and the child is close, sends them to another place
+	reflex check_smoking when: currentShow != nil and stopped and self.child != nil and agents_at_distance(maxDistanceRadius) of_species (OTFan) contains child{
+		
+		loop otFan over: agents_at_distance(maxDistanceRadius) of_species (OTFan){
+			if otFan.smokes {
+				if logStages and logOTFans and logStagesOTFans{
+					write self.name + ' telling my kid to go to another stage';
+				}
+				
+				do start_conversation (to:: [child], protocol:: 'fipa-request', performative:: 'request', contents:: ['Go to another stage please']);
+				break;
+			}
+		}
+	}	
+	
+	reflex find_child when: currentShow != nil and self.child != nil and stopped and flip(0.005){
+				if logStages and logOTFans and logStagesOTFans{
+					write self.name + ' I\'m going to look for my kid';
+				}
+				
+				targetPoint<-child.location;
+	}
+	
+	//Reads agrees from child when they move
+	reflex read_agrees when: !(empty(agrees)){
+		loop a over: agrees{
+			string tmp<- string(a.contents);
 		}
 	}
 	
@@ -239,9 +295,11 @@ species OTFan skills: [fipa,moving]{
 	//Goes to selected point and stops if close
 	reflex goToDest when: targetPoint != nil{
 		if location distance_to(targetPoint) > maxDistancePoint{
-			do goto target: targetPoint;	
+			do goto target: targetPoint;
+			stopped<-false;	
 		}else{
 			do wander speed: 0.1;
+			stopped<-true;
 		}
 		
 	}
@@ -282,6 +340,7 @@ species PrequelsFan skills: [fipa,moving]{
 	point targetPoint;
 	float maxDistancePoint;
 	float maxDistanceRadius;
+	bool stopped;
 
 	//Initialization
 	init{
@@ -308,7 +367,7 @@ species PrequelsFan skills: [fipa,moving]{
 		targetPoint <- nil;
 		maxDistancePoint<-6.0;
 		maxDistanceRadius<-10.0;
-
+		stopped<-true;
 	}
 	
 	//Drops 1 hunger point (0.8 probable)
@@ -341,7 +400,7 @@ species PrequelsFan skills: [fipa,moving]{
 		
 		if !alreadyAsked and length( agents_at_distance(maxDistanceRadius) of_species (OTFan)) >0{
 			//request to buy
-			write self.name + ' asking OTFans if buying a drink';
+			//write self.name + ' asking OTFans if buying a drink';
 			do start_conversation (to:: list(agents_at_distance(maxDistanceRadius) of_species (OTFan)), protocol:: 'fipa-contract-net', performative:: 'cfp', contents:: ['Buy drink?']);
 		
 			alreadyAsked<-true;
@@ -368,6 +427,7 @@ species PrequelsFan skills: [fipa,moving]{
 					currentShow<-p.sender;
 					targetPoint<-currentShow.location;
 					scoreCurrentShow<-score;
+					stopped<-false;
 				}
 			}else{
 				//Agrees
@@ -377,7 +437,10 @@ species PrequelsFan skills: [fipa,moving]{
 					
 					//Calls for more
 					if agreesNum > length(agents_at_distance(maxDistanceRadius) of_species (PrequelsFan) ){
-						write self.name + ' calls for more people';
+						if logCantine and logPrequelFans and logCantinePrequelFans{
+							write self.name + ': '+ p.sender +' buys drinks! Calling for more people';						
+						}
+
 						do start_conversation (to:: [one_of(list(PrequelsFan) - agents_at_distance(maxDistanceRadius) of_species (PrequelsFan))], protocol:: 'fipa-contract-net', performative:: 'inform', contents:: ['Someone is buying drinks']);
 					}	
 				}
@@ -400,8 +463,11 @@ species PrequelsFan skills: [fipa,moving]{
 			if species(i.sender) = PrequelsFan{
 				
 				string tmp <- string(i.contents);
-			
-				write self.name + ' going for drinks!';
+	
+				if logCantine and logPrequelFans and logCantinePrequelFans{
+					write self.name + ' going for drinks!';
+				}
+				
 				targetPoint <-cantineLocation;
 			}
 			
@@ -427,6 +493,24 @@ species PrequelsFan skills: [fipa,moving]{
 		}
 	}
 
+	//Checks if surrounding noise is bigger than own resistance and if so, leaves
+	reflex check_noise when: currentShow != nil and stopped and length(agents_at_distance(maxDistanceRadius) of_species (DisneySWFan)) > 5{
+		list<float> noises<-[];
+		loop disneyFan over: agents_at_distance(maxDistanceRadius) of_species (DisneySWFan){
+			add disneyFan.noisy to: noises;
+		}
+		
+		//Leaves
+		if mean(noises)>noiseResistance{
+			if logStages and logPrequelFans and logStagesPrequelFans{
+				write logStages;
+				write self.name + ': too much noise in this stage, leaving!';
+			}
+			
+			do start_conversation (to:: list(Stage) - currentShow, protocol:: 'fipa-contract-net', performative:: 'cfp', contents:: ['What is the show?']);
+			scoreCurrentShow<-0.0;
+		}
+	}
 	
 	//Chooses where to go next
 	reflex choosePlace when: targetPoint = nil{
@@ -442,9 +526,11 @@ species PrequelsFan skills: [fipa,moving]{
 	reflex goToDest when: targetPoint != nil{
 
 		if location distance_to(targetPoint) > maxDistancePoint{
-			do goto target: targetPoint;	
+			do goto target: targetPoint;
+			stopped<-false;	
 		}else{
 			do wander speed: 0.1;
+			stopped<-true;
 		}
 		
 	}
@@ -482,6 +568,7 @@ species DisneySWFan skills: [fipa,moving]{
 	point targetPoint;
 	float maxDistancePoint;
 	float maxDistanceRadius;
+	bool stopped;
 	
 
 	//Initialization
@@ -523,7 +610,7 @@ species DisneySWFan skills: [fipa,moving]{
 		targetPoint <- nil;
 		maxDistancePoint<-5.0;
 		maxDistanceRadius<-10.0;
-		
+		stopped<-false;
 	}
 	
 	//Drops 1 hunger point (0.8 probable)
@@ -556,10 +643,15 @@ species DisneySWFan skills: [fipa,moving]{
 		if length(agents_at_distance(maxDistanceRadius) of_species (PrequelsFan) ) > 10 and !previouslyChecked{
 			
 			if agents_at_distance(maxDistanceRadius) of_species (OTFan) one_matches (each.child = self){
-				write self.name + ' too much PrequelFan eating here! But my parent is here';
+				if logCantine and logDisneySWFans and logCantineDisneySWFans{
+					write self.name + ' too much PrequelFan eating here! But my parent is here';
+				}
+				
 				previouslyChecked<-true;
 			} else{
-				write self.name + ' too much PrequelFan eating here! I\'m leaving';
+				if logCantine and logDisneySWFans and logCantineDisneySWFans{
+					write self.name + ' too much PrequelFan eating here! I\'m leaving';
+				}
 			
 				needToEat<- false;
 				targetPoint<-nil;				
@@ -620,6 +712,22 @@ species DisneySWFan skills: [fipa,moving]{
 		}
 	}
 	
+	//Reads requests to move from parent
+	reflex read_requests when: !(empty(requests)){
+		loop r over: requests{
+			
+			string tmp<- string(r.contents);
+			
+			if logStages and logDisneySWFans and logStagesDisneySWFans{
+				write self.name + ' moving to another stage because my parent told me so';
+			}
+			
+			do start_conversation (to:: list(Stage) - currentShow, protocol:: 'fipa-contract-net', performative:: 'cfp', contents:: ['What is the show?']);
+			scoreCurrentShow<-0.0;
+		}
+	}
+	
+	
 	//Chooses where to go next
 	reflex choosePlace when: targetPoint = nil{
 		//0.1 probability to go to a random place
@@ -629,15 +737,25 @@ species DisneySWFan skills: [fipa,moving]{
 			do start_conversation (to:: list(Stage), protocol:: 'fipa-contract-net', performative:: 'cfp', contents:: ['What is the show?']);
 		}
 	}
+	
+	reflex find_parent when: currentShow != nil and self.parent != nil and stopped and flip(0.005){
+				if logStages and logOTFans and logStagesOTFans{
+					write self.name + ' I\'m going to look for my parent';
+				}
+				
+				targetPoint<-parent.location;
+	}
 		
 	//Goes to selected point and stops if close
 	reflex goToDest when: targetPoint != nil{
 
 
 		if location distance_to(targetPoint) > maxDistancePoint{
-			do goto target: targetPoint;	
+			do goto target: targetPoint;
+			stopped<-false;
 		}else{
 			do wander speed: 0.1;
+			stopped<-true;
 		}
 		
 	}
@@ -709,7 +827,9 @@ species Stage skills: [fipa]{
 		// 3 = Disney
 		currentShow <- rnd (1,3);
 		
-		write self.name + ' new show! Type: ' + currentShow;
+		if logStages{
+			write self.name + ' new show! Type: ' + currentShow;
+		}
 		
 		do start_conversation (to:: list(OTFan), protocol:: 'fipa-contract-net', performative:: 'inform', contents:: ['New show!',currentShow,showTime]);
 		do start_conversation (to:: list(PrequelsFan), protocol:: 'fipa-contract-net', performative:: 'inform', contents:: ['New show!',currentShow,showTime]);	
@@ -742,7 +862,23 @@ species Stage skills: [fipa]{
 
 
 experiment Project type: gui {
-	/** Insert here the definition of the input and output of the model */
+	parameter "Logs for cantine: " var: logCantine category: "Logs" enables: [logCantineOTFans,logCantinePrequelFans,logCantineDisneySWFans];
+	parameter "Logs for stages: " var: logStages category: "Logs" enables: [logStagesOTFans,logStagesPrequelFans,logStagesDisneySWFans];
+	
+	parameter "Logs for OTFans: " var: logOTFans category: "Logs" enables: [logCantineOTFans,logStagesOTFans];
+	parameter "Logs for PrequelFans: " var: logPrequelFans category: "Logs" enables: [logCantinePrequelFans,logStagesPrequelFans];
+	parameter "Logs for DisneySWFans: " var: logDisneySWFans category: "Logs" enables: [logCantineDisneySWFans,logStagesDisneySWFans];
+	
+	parameter "Logs for OTFans in cantine: " var: logCantineOTFans category: "Logs";
+	parameter "Logs for PrequelFans in cantine: " var: logCantinePrequelFans category: "Logs";
+	parameter "Logs for DisneySWFans in cantine: " var: logCantineDisneySWFans category: "Logs";
+	
+	parameter "Logs for OTFans in stages: " var: logStagesOTFans category: "Logs";
+	parameter "Logs for PrequelFans in stages: " var: logStagesPrequelFans category: "Logs";
+	parameter "Logs for DisneySWFans in stages: " var: logStagesDisneySWFans category: "Logs";
+	
+	
+	
 	output {
 		display map type: opengl{
 			species Stage;
