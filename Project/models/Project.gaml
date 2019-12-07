@@ -54,70 +54,42 @@ species OTFan skills: [fipa,moving]{
 
 	//Variables
 	//Preferences for types
-	float OTPref;
-	float PreqPref;
-	float DisneyPref;
+	float OTPref<- rnd(8,10)/10;
+	float PreqPref<- rnd(0,5)/10;
+	float DisneyPref<- rnd(0,3)/10;
 	
 	//Current show
-	float scoreCurrentShow;
-	Stage currentShow;
+	float scoreCurrentShow<-0.0;
+	Stage currentShow<-nil;
 	
-	float happiness;
+	float happiness<-0.0;
 	
 	//Variables to interact with others
-	float noiseResistance;
-	float generous;
-	int justBought;
-	bool previouslyChecked;
+	float generous<- rnd(10)/10;
+	int justBought<-0;
+	bool previouslyChecked<-false;
 	
-	bool smokes;
+	bool smokes<- flip(0.5);
 	
 	//Son
-	DisneySWFan child;
+	DisneySWFan child<-nil;
 	
 	//Related to eating
-	int hunger;
-	bool needToEat;
+	int hunger<- rnd(200,250);
+	bool needToEat<- false;
 	point cantineLocation;
 	
 	//Related to moving and surrounding
-	point targetPoint;
-	float maxDistancePoint;
-	float maxDistanceRadius;
-	bool stopped;
+	point targetPoint<- nil;
+	float maxDistancePoint<-7.0;
+	float maxDistanceRadius<-10.0;
+	bool stopped<-false;
 
 	//Initialization
 	init{
-
-		OTPref<- rnd(8,10)/10;
-		PreqPref<- rnd(0,5)/10;
-		DisneyPref<- rnd(0,3)/10;
-		
-		scoreCurrentShow<-0.0;
-		currentShow<-nil;
-		
-		happiness<-0.0;
-
-		noiseResistance <- rnd(10)/10;
-		generous <- rnd(10)/10;
-		justBought<-0;
-		previouslyChecked<-false;
-		
-		child <-nil;
-		
-		smokes<- flip(0.5);
-		
-		hunger <- rnd(200,250);
-		needToEat <- false;
 		ask Cantine{
 			myself.cantineLocation <- self.location;
 		}
-		
-		targetPoint <- nil;
-		maxDistancePoint<-7.0;
-		maxDistanceRadius<-10.0;
-		stopped<-false;
-
 	}
 	
 	
@@ -266,7 +238,7 @@ species OTFan skills: [fipa,moving]{
 		}
 	}	
 	
-	reflex find_child when: currentShow != nil and self.child != nil and stopped and flip(0.005){
+	reflex find_child when: currentShow != nil and self.child != nil and stopped and child.stopped and flip(0.001){
 				if logStages and logOTFans and logStagesOTFans{
 					write self.name + ' I\'m going to look for my kid';
 				}
@@ -305,7 +277,7 @@ species OTFan skills: [fipa,moving]{
 	}
 	
 	aspect default{
-		draw sphere(2) at: location color: #red;
+		draw sphere(2) at: location color: #orange;
 		//draw circle(maxDistanceRadius) at: location color: #black;
 		
 	}
@@ -316,58 +288,37 @@ species PrequelsFan skills: [fipa,moving]{
 	
 	//Variables
 	//Preferences for types
-	float OTPref;
-	float PreqPref;
-	float DisneyPref;
+	float OTPref<- rnd(7,9)/10;
+	float PreqPref<- rnd(7,10)/10;
+	float DisneyPref<- rnd(0,5)/10;
 	
 	//Current show
-	float scoreCurrentShow;
-	Stage currentShow;
+	float scoreCurrentShow<-0.0;
+	Stage currentShow<-nil;
 	
-	float happiness;
+	float happiness<-0.0;
 	
 	//Variables to interact with others
-	float noiseResistance;
-	bool alreadyAsked;
-	int agreesNum;
+	float noiseResistance<- rnd(10)/10;
+	bool alreadyAsked<-false;
+	int agreesNum<-0;
 
 	//Related to eating
-	int hunger;
-	bool needToEat;
+	int hunger<- rnd(200,250);
+	bool needToEat<- false;
 	point cantineLocation;
 
 	//Related to moving and surrounding
-	point targetPoint;
-	float maxDistancePoint;
-	float maxDistanceRadius;
-	bool stopped;
+	point targetPoint<- nil;
+	float maxDistancePoint<-6.0;
+	float maxDistanceRadius<-10.0;
+	bool stopped<-false;
 
 	//Initialization
 	init{
-
-		OTPref<- rnd(7,9)/10;
-		PreqPref<- rnd(7,10)/10;
-		DisneyPref<- rnd(0,5)/10;
-		
-		scoreCurrentShow<-0.0;
-		currentShow<-nil;
-		
-		happiness<-0.0;
-		
-		noiseResistance <- rnd(10)/10;
-		alreadyAsked<-false;
-		agreesNum<-0;
-		
-		hunger <- rnd(200,250);
-		needToEat <- false;
 		ask Cantine{
 			myself.cantineLocation <- self.location;
 		}
-		
-		targetPoint <- nil;
-		maxDistancePoint<-6.0;
-		maxDistanceRadius<-10.0;
-		stopped<-true;
 	}
 	
 	//Drops 1 hunger point (0.8 probable)
@@ -503,7 +454,6 @@ species PrequelsFan skills: [fipa,moving]{
 		//Leaves
 		if mean(noises)>noiseResistance{
 			if logStages and logPrequelFans and logStagesPrequelFans{
-				write logStages;
 				write self.name + ': too much noise in this stage, leaving!';
 			}
 			
@@ -544,49 +494,35 @@ species DisneySWFan skills: [fipa,moving]{
 
 	//Variables
 	//Preferences for types
-	float OTPref;
-	float PreqPref;
-	float DisneyPref;
+	float OTPref<- rnd(5,8)/10;
+	float PreqPref<- rnd(5,10)/10;
+	float DisneyPref<- rnd(7,10)/10;
 	
 	//Current show
-	float scoreCurrentShow;
-	Stage currentShow;
+	float scoreCurrentShow<-0.0;
+	Stage currentShow<-nil;
 	
-	float happiness;
+	float happiness<-0.0;
 	
 	//Variables to interact with others
-	float noisy;
-	OTFan parent;
-	bool previouslyChecked;
+	float noisy<- rnd(10)/10;
+	OTFan parent<- nil;
+	bool previouslyChecked<-false;
 
 	//Related to eating
-	int hunger;
-	bool needToEat;
+	int hunger<- rnd(200,250);
+	bool needToEat<- false;
 	point cantineLocation;
 
 	//Related to moving and surrounding
-	point targetPoint;
-	float maxDistancePoint;
-	float maxDistanceRadius;
-	bool stopped;
+	point targetPoint<- nil;
+	float maxDistancePoint<-5.0;
+	float maxDistanceRadius<-10.0;
+	bool stopped<-false;
 	
 
 	//Initialization
-	init{
-
-		OTPref<- rnd(5,8)/10;
-		PreqPref<- rnd(5,10)/10;
-		DisneyPref<- rnd(7,10)/10;
-		
-		scoreCurrentShow<-0.0;
-		currentShow<-nil;
-		
-		happiness<-0.0;
-		
-		noisy <- rnd(10)/10;
-		parent <- nil;
-		previouslyChecked<-false;
-		
+	init{		
 		//Half of them get parents
 		if flip(0.5){
 			loop while: parent = nil{
@@ -601,16 +537,9 @@ species DisneySWFan skills: [fipa,moving]{
 			}	
 		}
 		
-		hunger <- rnd(200,250);
-		needToEat <- false;
 		ask Cantine{
 			myself.cantineLocation <- self.location;
 		}
-		
-		targetPoint <- nil;
-		maxDistancePoint<-5.0;
-		maxDistanceRadius<-10.0;
-		stopped<-false;
 	}
 	
 	//Drops 1 hunger point (0.8 probable)
@@ -738,7 +667,7 @@ species DisneySWFan skills: [fipa,moving]{
 		}
 	}
 	
-	reflex find_parent when: currentShow != nil and self.parent != nil and stopped and flip(0.005){
+	reflex find_parent when: currentShow != nil and self.parent != nil and stopped and parent.stopped and flip(0.001){
 				if logStages and logOTFans and logStagesOTFans{
 					write self.name + ' I\'m going to look for my parent';
 				}
@@ -887,6 +816,15 @@ experiment Project type: gui {
 			species PrequelsFan;
 			species DisneySWFan;
 		}
+		
+		display Hunger refresh:every(1#cycles) {
+		    chart "Hunger Means" type: series size: {1,1} position: {0, 0}  x_range: 400 y_range: {0,250}{
+			    data "OTFan" value:  mean (OTFan collect each.hunger) color:#orange;
+			    data "PrequelsFan" value: mean (PrequelsFan collect each.hunger) color:#cyan;
+			    data "DisneySWFan" value: mean (DisneySWFan collect each.hunger) color:#green;
+		    }	
+		}
+		
 		
 		/*display Hunger refresh:every(1#cycles) {
 		    chart "Hunger Means" type: histogram background: #lightgray size: {1,1} position: {0, 0} y_range: {0,150}{
