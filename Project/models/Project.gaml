@@ -40,10 +40,6 @@ global {
 			
 		}
 		
-		create DarthVader number: 1{
-			
-		}
-		
 		create PrequelsFan number: 20{
 			
 		}
@@ -182,35 +178,23 @@ species OTFan skills: [fipa,moving]{
 	
 	//Reads messages from stages when a new show begins
 	reflex read_informs when: !(empty(informs)){
-		loop i over: informs{
-			//New show
-			if species(i.sender) = Stage{			
-				float score;
-				
-				if i.contents[1] = 1{
-					score<-OTPref;
-				}else if i.contents[1] = 2{
-					score<-PreqPref;
-				}else{
-					score<-DisneyPref;
-				}
-				
-				if score > scoreCurrentShow and !needToEat{
-					currentShow<-i.sender;
-					targetPoint<-currentShow.location;
-					scoreCurrentShow<-score;
-				}
+		loop i over: informs{			
+			float score;
+			
+			if i.contents[1] = 1{
+				score<-OTPref;
+			}else if i.contents[1] = 2{
+				score<-PreqPref;
+			}else{
+				score<-DisneyPref;
 			}
 			
-			//Darth Vader
-			else{
-				float score<-rnd(8,10)/10;
-				if score > scoreCurrentShow and !needToEat{
-					currentShow<-nil;
-					targetPoint<-agent(i.sender).location;
-					scoreCurrentShow<-score;	
-				}
+			if score > scoreCurrentShow and !needToEat{
+				currentShow<-i.sender;
+				targetPoint<-currentShow.location;
+				scoreCurrentShow<-score;
 			}
+			
 		}
 	}
 	
@@ -438,7 +422,7 @@ species PrequelsFan skills: [fipa,moving]{
 			}
 			
 			//New show
-			else if species(i.sender) = Stage{
+			else{
 				float score;
 				
 				if i.contents[1] = 1{
@@ -453,15 +437,6 @@ species PrequelsFan skills: [fipa,moving]{
 					currentShow<-i.sender;
 					targetPoint<-currentShow.location;
 					scoreCurrentShow<-score;
-				}
-			}
-			//Darth Vader appeared
-			else{
-				float score<-rnd(8,10)/10;
-				if score > scoreCurrentShow and !needToEat{
-					currentShow<-nil;
-					targetPoint<-agent(i.sender).location;
-					scoreCurrentShow<-score;	
 				}
 			}
 			
@@ -623,32 +598,21 @@ species DisneySWFan skills: [fipa,moving]{
 	reflex read_informs when: !(empty(informs)){
 		loop i over: informs{
 			//New show
-			if species(i.sender) = Stage{
+		
+			float score;
 			
-				float score;
-				
-				if i.contents[1] = 1{
-					score<-OTPref;
-				}else if i.contents[1] = 2{
-					score<-PreqPref;
-				}else{
-					score<-DisneyPref;
-				}
-				
-				if score > scoreCurrentShow and !needToEat{
-					currentShow<-i.sender;
-					targetPoint<-currentShow.location;
-					scoreCurrentShow<-score;
-				}
+			if i.contents[1] = 1{
+				score<-OTPref;
+			}else if i.contents[1] = 2{
+				score<-PreqPref;
+			}else{
+				score<-DisneyPref;
 			}
-			//Darth Vader
-			else{
-				float score<-rnd(8,10)/10;
-				if score > scoreCurrentShow and !needToEat{
-					currentShow<-nil;
-					targetPoint<-agent(i.sender).location;
-					scoreCurrentShow<-score;	
-				}
+			
+			if score > scoreCurrentShow and !needToEat{
+				currentShow<-i.sender;
+				targetPoint<-currentShow.location;
+				scoreCurrentShow<-score;
 			}
 		}
 	}
@@ -731,125 +695,6 @@ species DisneySWFan skills: [fipa,moving]{
 		
 	}
 }
-
-
-species DarthVader skills: [fipa,moving]{
-/*	
-	//Related to moving and surrounding
-	point targetPoint<- nil;
-	bool stopped<-false;
-	float maxDistancePoint<-20.0;
-	
-	//Related to appearing and moving
-	bool appeared<-false;
-	bool moved<-false;
-	int time<-0;
-
-	//Initialization
-	init{
-		location<-{-100,-100};
-	}
-	
-	reflex add_time{
-		if flip(0.9){
-			time <- time+1;
-		}
-	}
-	
-	//Chooses where to appear
-	reflex appear when: !appeared and location = {-100,-100} and time > 300 and flip(0.9){
-		time<-0;
-		appeared<-true;
-		
-		write 'DARTH VADER HAS APPEARED!';
-		
-		loop while: location = {-100,-100}{
-			point tmp <- {rnd(100),rnd(100)};
-			
-			bool conflicts<-false;
-			
-			ask Stage{
-				if tmp distance_to(self.location) < myself.maxDistancePoint{
-					conflicts<-true;
-				}
-			}
-			
-			ask Cantine {
-				if tmp distance_to(self.location) < myself.maxDistancePoint{
-					conflicts<-true;
-				}	
-			}
-			
-			if !conflicts{
-				location<-tmp;
-			}
-		}
-		
-		do start_conversation (to:: list(OTFan), protocol:: 'fipa-contract-net', performative:: 'inform', contents:: ['Darth Vader appeared!',location]);
-		do start_conversation (to:: list(PrequelsFan), protocol:: 'fipa-contract-net', performative:: 'inform', contents:: ['Darth Vader appeared!',location]);	
-		do start_conversation (to:: list(DisneySWFan), protocol:: 'fipa-contract-net', performative:: 'inform', contents:: ['Darth Vader appeared!',location]);
-		
-	}
-	
-	//Chooses where to move if it has appeared
-	reflex move_when_appeared when: appeared and !moved and time > 100 and flip(0.9){
-		
-		time<-0;
-		appeared<-true;
-		
-		loop while: targetPoint = nil{
-			point tmp <- {rnd(100),rnd(100)};
-			
-			bool conflicts<-false;
-			
-			ask Stage{
-				if tmp distance_to(self.location) < myself.maxDistancePoint{
-					conflicts<-true;
-				}
-			}
-			
-			ask Cantine {
-				if tmp distance_to(self.location) < myself.maxDistancePoint{
-					conflicts<-true;
-				}	
-			}
-			
-			if !conflicts{
-				targetPoint<-tmp;
-			}
-		}
-		
-	}
-	
-	//Chooses where to move if it has appeared
-	reflex dissappear when: appeared and moved and time > 200 and flip(0.9){
-		time<-0;
-		appeared<-false;
-		moved<-false;
-		location<-{-100,-100};
-		targetPoint<-nil;
-		
-		write 'DARTH VADER HAS DISAPPEARED!';		
-	}
-	
-	//Goes to selected point and stops if close
-	reflex goToDest when: targetPoint != nil{
-		if location distance_to(targetPoint) > maxDistancePoint{
-			do goto target: targetPoint;
-		}else{
-			do wander speed: 0.1;
-			moved<-true;
-		}
-		
-	}
-	
-	aspect default{
-		draw sphere(2.5) at: location color: #black;
-		//draw circle(maxDistanceRadius) at: location color: #black;
-		
-	}*/
-}
-
 
 
 species Stage skills: [fipa]{
@@ -984,7 +829,6 @@ experiment Project type: gui {
 			species OTFan;
 			species PrequelsFan;
 			species DisneySWFan;
-			species DarthVader;
 		}
 		
 		/*display Hunger refresh:every(1#cycles) {
