@@ -16,18 +16,17 @@ global {
 	bool logPrequelFans<-true;
 	bool logDisneySWFans<-true;
 	
-	bool logCantineOTFans<-true;
-	bool logCantinePrequelFans<-true;
-	bool logCantineDisneySWFans<-true;
-	
-	bool logStagesOTFans<-true;
-	bool logStagesPrequelFans<-true;
-	bool logStagesDisneySWFans<-true;
+	bool darthOnOff<-true;
+	bool yodaOnOff<-true;
 	
 	
 	//Creation of agents
 	init{
 
+		create DarthVader number: 1{
+			
+		}
+		
 		create Cantine number: 1{
 			
 		}
@@ -37,6 +36,11 @@ global {
 		}
 		
 		create OTFan number: 20{
+			
+		}
+		
+		
+		create Yoda number: 1{
 			
 		}
 		
@@ -68,8 +72,12 @@ species OTFan skills: [fipa,moving]{
 	float generous<- rnd(10)/10;
 	int justBought<-0;
 	bool previouslyChecked<-false;
-	
 	bool smokes<- flip(0.5);
+	
+	//Vader and Yoda
+	DarthVader vader;
+	bool goingWithVader<-false;
+	bool movedVader<-false;
 	
 	//Son
 	DisneySWFan child<-nil;
@@ -90,6 +98,10 @@ species OTFan skills: [fipa,moving]{
 		ask Cantine{
 			myself.cantineLocation <- self.location;
 		}
+		
+		ask DarthVader{
+			myself.vader<-self;
+		}
 	}
 	
 	
@@ -102,6 +114,7 @@ species OTFan skills: [fipa,moving]{
 		if hunger = 0{
 			targetPoint<-cantineLocation;
 			needToEat <- true;
+			goingWithVader<-false;
 			
 			scoreCurrentShow<-0.0;
 			currentShow<-nil;
@@ -117,6 +130,7 @@ species OTFan skills: [fipa,moving]{
 		if hunger > 200 and flip(0.8){
 			needToEat<- false;
 			targetPoint<-nil;
+			goingWithVader<-false;	
 			
 			previouslyChecked<-false;	
 		}
@@ -126,19 +140,20 @@ species OTFan skills: [fipa,moving]{
 			
 			if agents_at_distance(maxDistanceRadius) of_species (DisneySWFan) one_matches (each.parent = self){
 				
-				if logCantine and logOTFans and logCantineOTFans{
+				if logCantine and logOTFans{
 					write self.name + ' too much Disney eating here! But my kid is here';
 				}
 				
 				
 				previouslyChecked<-true;
 			} else{
-				if logCantine and logOTFans and logCantineOTFans{
+				if logCantine and logOTFans {
 					write self.name + ' too much Disney eating here! I\'m leaving';
 				}
 				
 				needToEat<- false;
-				targetPoint<-nil;				
+				targetPoint<-nil;
+				goingWithVader<-false;				
 				
 				if hunger < 100{
 					hunger<-100;
@@ -178,29 +193,48 @@ species OTFan skills: [fipa,moving]{
 	
 	//Reads messages from stages when a new show begins
 	reflex read_informs when: !(empty(informs)){
-		loop i over: informs{			
-			float score;
+		loop i over: informs{		
+			string tmp<- string(i.contents);
 			
-			if i.contents[1] = 1{
-				score<-OTPref;
-			}else if i.contents[1] = 2{
-				score<-PreqPref;
-			}else{
-				score<-DisneyPref;
+			//New show
+			if species(i.sender) = Stage{		
+				float score;
+			
+				if i.contents[1] = 1{
+					score<-OTPref;
+				}else if i.contents[1] = 2{
+					score<-PreqPref;
+				}else{
+					score<-DisneyPref;
+				}
+				
+				if score > scoreCurrentShow and !needToEat{
+					currentShow<-i.sender;
+					targetPoint<-currentShow.location;
+					scoreCurrentShow<-score;
+					goingWithVader<-false;
+				}
 			}
 			
-			if score > scoreCurrentShow and !needToEat{
-				currentShow<-i.sender;
-				targetPoint<-currentShow.location;
-				scoreCurrentShow<-score;
+			//Darth Vader
+			else{
+				float score<-rnd(5,8)/10;
+				
+				if score > scoreCurrentShow and !needToEat{
+					currentShow<-nil;
+					targetPoint<-agent(i.sender).location;
+					scoreCurrentShow<-score;
+					goingWithVader<-true;
+				}
 			}
-			
 		}
 	}
 	
 	//Reads proposals from stages
 	reflex read_proposes when: !(empty(proposes)){
 		loop p over: proposes{
+		
+			string tmp<- string(p.contents);
 
 			float score;
 			
@@ -217,6 +251,7 @@ species OTFan skills: [fipa,moving]{
 				targetPoint<-currentShow.location;
 				scoreCurrentShow<-score;
 				stopped<-false;
+				goingWithVader<-false;
 			}
 		
 		}
@@ -227,7 +262,7 @@ species OTFan skills: [fipa,moving]{
 		
 		loop otFan over: agents_at_distance(maxDistanceRadius) of_species (OTFan){
 			if otFan.smokes {
-				if logStages and logOTFans and logStagesOTFans{
+				if logStages and logOTFans{
 					write self.name + ' telling my kid to go to another stage';
 				}
 				
@@ -238,11 +273,12 @@ species OTFan skills: [fipa,moving]{
 	}	
 	
 	reflex find_child when: currentShow != nil and self.child != nil and stopped and child.stopped and flip(0.001){
-				if logStages and logOTFans and logStagesOTFans{
+				if logStages and logOTFans {
 					write self.name + ' I\'m going to look for my kid';
 				}
 				
 				targetPoint<-child.location;
+				goingWithVader<-false;
 	}
 	
 	//Reads agrees from child when they move
@@ -252,12 +288,31 @@ species OTFan skills: [fipa,moving]{
 		}
 	}
 	
+	reflex followVader when: goingWithVader and vader.moved and !movedVader{
+		movedVader<-true;
+		targetPoint<-vader.location;
+
+	}
+	
+	reflex notFollowVader when: goingWithVader and !vader.appeared{
+		movedVader<-false;
+		goingWithVader<-false;
+		targetPoint<-nil;
+		scoreCurrentShow<-0.0;
+	}
+	
+	
+	
 	//Chooses where to go next
 	reflex choosePlace when: targetPoint = nil{
 		
 		//0.1 probability to go to a random place
-		if flip(0.1){
+		if flip(0.05){
 			targetPoint <- {rnd(100),rnd(100)};
+			
+		}else if vader.appeared and flip(0.2){
+			goingWithVader<-true;
+			targetPoint<-vader.location;
 		}else{
 			do start_conversation (to:: list(Stage), protocol:: 'fipa-contract-net', performative:: 'cfp', contents:: ['What is the show?']);
 		}
@@ -265,9 +320,10 @@ species OTFan skills: [fipa,moving]{
 	
 	//Goes to selected point and stops if close
 	reflex goToDest when: targetPoint != nil{
+
 		if location distance_to(targetPoint) > maxDistancePoint{
 			do goto target: targetPoint;
-			stopped<-false;	
+			stopped<-false;
 		}else{
 			do wander speed: 0.1;
 			stopped<-true;
@@ -298,9 +354,14 @@ species PrequelsFan skills: [fipa,moving]{
 	float happiness<-0.0;
 	
 	//Variables to interact with others
-	float noiseResistance<- rnd(10)/10;
+	float noiseResistance<- rnd(5,10)/10;
 	bool alreadyAsked<-false;
 	int agreesNum<-0;
+	
+	//Vader and Yoda
+	DarthVader vader;
+	bool goingWithVader<-false;
+	bool movedVader<-false;
 
 	//Related to eating
 	int hunger<- rnd(200,250);
@@ -318,6 +379,10 @@ species PrequelsFan skills: [fipa,moving]{
 		ask Cantine{
 			myself.cantineLocation <- self.location;
 		}
+		
+		ask DarthVader{
+			myself.vader<-self;
+		}
 	}
 	
 	//Drops 1 hunger point (0.8 probable)
@@ -329,6 +394,7 @@ species PrequelsFan skills: [fipa,moving]{
 		if hunger = 0{
 			targetPoint<-cantineLocation;
 			needToEat <- true;
+			goingWithVader<-false;
 			
 			scoreCurrentShow<-0.0;
 			currentShow<-nil;
@@ -345,6 +411,7 @@ species PrequelsFan skills: [fipa,moving]{
 			needToEat<- false;
 			targetPoint<-nil;		
 			alreadyAsked<-false;	
+			goingWithVader<-false;	
 		}
 		
 		
@@ -362,6 +429,8 @@ species PrequelsFan skills: [fipa,moving]{
 	//proposals from stages
 	reflex read_proposes when: !(empty(proposes)){
 		loop p over: proposes{
+			string tmp<- string(p.contents);
+			
 			if species(p.sender) = Stage{
 				float score;
 				
@@ -378,6 +447,7 @@ species PrequelsFan skills: [fipa,moving]{
 					targetPoint<-currentShow.location;
 					scoreCurrentShow<-score;
 					stopped<-false;
+					goingWithVader<-false;
 				}
 			}else{
 				//Agrees
@@ -387,7 +457,7 @@ species PrequelsFan skills: [fipa,moving]{
 					
 					//Calls for more
 					if agreesNum > length(agents_at_distance(maxDistanceRadius) of_species (PrequelsFan) ){
-						if logCantine and logPrequelFans and logCantinePrequelFans{
+						if logCantine and logPrequelFans{
 							write self.name + ': '+ p.sender +' buys drinks! Calling for more people';						
 						}
 
@@ -408,21 +478,23 @@ species PrequelsFan skills: [fipa,moving]{
 	//or from stages when a new show begins
 	reflex read_informs when: !(empty(informs)){
 		loop i over: informs{
+			string tmp<- string(i.contents);
 			
 			//Someone is buying drinks
 			if species(i.sender) = PrequelsFan{
 				
 				string tmp <- string(i.contents);
 	
-				if logCantine and logPrequelFans and logCantinePrequelFans{
+				if logCantine and logPrequelFans {
 					write self.name + ' going for drinks!';
 				}
 				
 				targetPoint <-cantineLocation;
+				goingWithVader<-false;
 			}
 			
 			//New show
-			else{
+			else if species(i.sender) = Stage{
 				float score;
 				
 				if i.contents[1] = 1{
@@ -437,6 +509,18 @@ species PrequelsFan skills: [fipa,moving]{
 					currentShow<-i.sender;
 					targetPoint<-currentShow.location;
 					scoreCurrentShow<-score;
+					goingWithVader<-false;
+				}
+			}
+			
+			//Darth Vader appeared
+			else{
+				float score<-rnd(5,8)/10;
+				if score > scoreCurrentShow and !needToEat{
+					currentShow<-nil;
+					targetPoint<-agent(i.sender).location;
+					scoreCurrentShow<-score;	
+					goingWithVader<-true;
 				}
 			}
 			
@@ -452,7 +536,7 @@ species PrequelsFan skills: [fipa,moving]{
 		
 		//Leaves
 		if mean(noises)>noiseResistance{
-			if logStages and logPrequelFans and logStagesPrequelFans{
+			if logStages and logPrequelFans {
 				write self.name + ': too much noise in this stage, leaving!';
 			}
 			
@@ -461,11 +545,28 @@ species PrequelsFan skills: [fipa,moving]{
 		}
 	}
 	
+	reflex followVader when: goingWithVader and vader.moved and !movedVader{
+		movedVader<-true;
+		targetPoint<-vader.location;
+
+	}
+	
+	reflex notFollowVader when: goingWithVader and !vader.appeared{
+		movedVader<-false;
+		goingWithVader<-false;
+		targetPoint<-nil;
+		scoreCurrentShow<-0.0;
+	}
+	
+	
 	//Chooses where to go next
 	reflex choosePlace when: targetPoint = nil{
 		//0.1 probability to go to a random place
-		if flip(0.1){
+		if flip(0.05){
 			targetPoint <- {rnd(100),rnd(100)};
+		}else if vader.appeared and flip(0.2){
+			goingWithVader<-true;
+			targetPoint<-vader.location;
 		}else{
 			do start_conversation (to:: list(Stage), protocol:: 'fipa-contract-net', performative:: 'cfp', contents:: ['What is the show?']);
 		}
@@ -473,10 +574,10 @@ species PrequelsFan skills: [fipa,moving]{
 	
 	//Goes to selected point and stops if close
 	reflex goToDest when: targetPoint != nil{
-
+		
 		if location distance_to(targetPoint) > maxDistancePoint{
 			do goto target: targetPoint;
-			stopped<-false;	
+			stopped<-false;
 		}else{
 			do wander speed: 0.1;
 			stopped<-true;
@@ -507,6 +608,11 @@ species DisneySWFan skills: [fipa,moving]{
 	float noisy<- rnd(10)/10;
 	OTFan parent<- nil;
 	bool previouslyChecked<-false;
+	
+	//Vader and Yoda
+	DarthVader vader;
+	bool goingWithVader<-false;
+	bool movedVader<-false;
 
 	//Related to eating
 	int hunger<- rnd(200,250);
@@ -539,6 +645,10 @@ species DisneySWFan skills: [fipa,moving]{
 		ask Cantine{
 			myself.cantineLocation <- self.location;
 		}
+		
+		ask DarthVader{
+			myself.vader<-self;
+		}
 	}
 	
 	//Drops 1 hunger point (0.8 probable)
@@ -550,6 +660,7 @@ species DisneySWFan skills: [fipa,moving]{
 		if hunger = 0{
 			targetPoint<-cantineLocation;
 			needToEat <- true;
+			goingWithVader<-false;
 			
 			scoreCurrentShow<-0.0;
 			currentShow<-nil;
@@ -571,18 +682,19 @@ species DisneySWFan skills: [fipa,moving]{
 		if length(agents_at_distance(maxDistanceRadius) of_species (PrequelsFan) ) > 10 and !previouslyChecked{
 			
 			if agents_at_distance(maxDistanceRadius) of_species (OTFan) one_matches (each.child = self){
-				if logCantine and logDisneySWFans and logCantineDisneySWFans{
+				if logCantine and logDisneySWFans {
 					write self.name + ' too much PrequelFan eating here! But my parent is here';
 				}
 				
 				previouslyChecked<-true;
 			} else{
-				if logCantine and logDisneySWFans and logCantineDisneySWFans{
+				if logCantine and logDisneySWFans {
 					write self.name + ' too much PrequelFan eating here! I\'m leaving';
 				}
 			
 				needToEat<- false;
-				targetPoint<-nil;				
+				targetPoint<-nil;
+				goingWithVader<-false;				
 				
 				if hunger < 100{
 					hunger<-100;
@@ -597,22 +709,38 @@ species DisneySWFan skills: [fipa,moving]{
 	//Reads messages from stages when a new show begins
 	reflex read_informs when: !(empty(informs)){
 		loop i over: informs{
-			//New show
-		
-			float score;
+			string tmp<- string(i.contents);
 			
-			if i.contents[1] = 1{
-				score<-OTPref;
-			}else if i.contents[1] = 2{
-				score<-PreqPref;
-			}else{
-				score<-DisneyPref;
+			//New show
+			if species(i.sender) = Stage{		
+				float score;
+			
+				if i.contents[1] = 1{
+					score<-OTPref;
+				}else if i.contents[1] = 2{
+					score<-PreqPref;
+				}else{
+					score<-DisneyPref;
+				}
+				
+				if score > scoreCurrentShow and !needToEat{
+					currentShow<-i.sender;
+					targetPoint<-currentShow.location;
+					scoreCurrentShow<-score;
+					goingWithVader<-false;
+				}
 			}
 			
-			if score > scoreCurrentShow and !needToEat{
-				currentShow<-i.sender;
-				targetPoint<-currentShow.location;
-				scoreCurrentShow<-score;
+			//Darth Vader
+			else{
+				float score<-rnd(5,8)/10;
+				
+				if score > scoreCurrentShow and !needToEat{
+					currentShow<-nil;
+					targetPoint<-agent(i.sender).location;
+					scoreCurrentShow<-score;	
+					goingWithVader<-true;
+				}
 			}
 		}
 	}
@@ -620,6 +748,7 @@ species DisneySWFan skills: [fipa,moving]{
 	//Reads proposals from stages
 	reflex read_proposes when: !(empty(proposes)){
 		loop p over: proposes{
+			string tmp<- string(p.contents);
 
 			float score;
 			
@@ -635,6 +764,7 @@ species DisneySWFan skills: [fipa,moving]{
 				currentShow<-p.sender;
 				targetPoint<-currentShow.location;
 				scoreCurrentShow<-score;
+				goingWithVader<-false;
 			}
 		
 		}
@@ -646,7 +776,7 @@ species DisneySWFan skills: [fipa,moving]{
 			
 			string tmp<- string(r.contents);
 			
-			if logStages and logDisneySWFans and logStagesDisneySWFans{
+			if logStages and logDisneySWFans {
 				write self.name + ' moving to another stage because my parent told me so';
 			}
 			
@@ -655,29 +785,48 @@ species DisneySWFan skills: [fipa,moving]{
 		}
 	}
 	
+	reflex find_parent when: currentShow != nil and self.parent != nil and stopped and parent.stopped and flip(0.001){
+				if logStages and logOTFans {
+					write self.name + ' I\'m going to look for my parent';
+				}
+				
+				targetPoint<-parent.location;
+				goingWithVader<-false;	
+	}
+	
+	reflex followVader when: goingWithVader and vader.moved and !movedVader{
+		movedVader<-true;
+		targetPoint<-vader.location;
+
+	}
+	
+	reflex notFollowVader when: goingWithVader and !vader.appeared{
+		movedVader<-false;
+		goingWithVader<-false;
+		targetPoint<-nil;
+		scoreCurrentShow<-0.0;
+	}
+	
 	
 	//Chooses where to go next
 	reflex choosePlace when: targetPoint = nil{
 		//0.1 probability to go to a random place
-		if flip(0.1){
+		if flip(0.05){
 			targetPoint <- {rnd(100),rnd(100)};
+			goingWithVader<-false;	
+		}else if vader.appeared and flip(0.2){
+			goingWithVader<-true;
+			targetPoint<-vader.location;
 		}else{
 			do start_conversation (to:: list(Stage), protocol:: 'fipa-contract-net', performative:: 'cfp', contents:: ['What is the show?']);
 		}
 	}
 	
-	reflex find_parent when: currentShow != nil and self.parent != nil and stopped and parent.stopped and flip(0.001){
-				if logStages and logOTFans and logStagesOTFans{
-					write self.name + ' I\'m going to look for my parent';
-				}
-				
-				targetPoint<-parent.location;
-	}
+
 		
 	//Goes to selected point and stops if close
 	reflex goToDest when: targetPoint != nil{
-
-
+		
 		if location distance_to(targetPoint) > maxDistancePoint{
 			do goto target: targetPoint;
 			stopped<-false;
@@ -696,6 +845,145 @@ species DisneySWFan skills: [fipa,moving]{
 	}
 }
 
+species DarthVader skills: [fipa,moving]{
+	
+	geometry shape <- obj_file("vader.obj") as geometry;
+
+	//Related to moving and surrounding
+	point targetPoint<- nil;
+	bool stopped<-false;
+	float maxDistancePoint<-20.0;
+	
+	//Related to appearing and moving
+	bool appeared<-false;
+	bool moved<-false;
+	int ownTime<-0;
+
+	//Initialization
+	init{
+		location<-{-100,-100};
+	}
+	
+	reflex add_time{
+		if flip(0.9){
+			ownTime <- ownTime+1;
+		}
+	}
+	
+	//Chooses where to appear
+	reflex appear when: !appeared and location < {-50,-50} and ownTime > 400 and flip(0.9) and darthOnOff{
+		ownTime<-0;
+		appeared<-true;
+		
+		write 'DARTH VADER HAS APPEARED!';
+		
+		loop while: location < {-50,-50}{
+			point tmp <- {rnd(100),rnd(100)};
+			
+			bool conflicts<-false;
+			
+			ask Stage{
+				if tmp distance_to(self.location) < myself.maxDistancePoint{
+					conflicts<-true;
+				}
+			}
+			
+			ask Cantine {
+				if tmp distance_to(self.location) < myself.maxDistancePoint{
+					conflicts<-true;
+				}	
+			}
+			
+			if !conflicts{
+				location<-tmp;
+			}
+		}
+		
+		do start_conversation (to:: list(OTFan), protocol:: 'fipa-contract-net', performative:: 'inform', contents:: ['Darth Vader appeared!',location]);
+		do start_conversation (to:: list(PrequelsFan), protocol:: 'fipa-contract-net', performative:: 'inform', contents:: ['Darth Vader appeared!',location]);	
+		do start_conversation (to:: list(DisneySWFan), protocol:: 'fipa-contract-net', performative:: 'inform', contents:: ['Darth Vader appeared!',location]);
+		
+	}
+	
+	//Chooses where to move if it has appeared
+	reflex move_when_appeared when: appeared and !moved and ownTime > 100 and flip(0.9) and darthOnOff{
+		
+		ownTime<-0;
+		
+		loop while: targetPoint = nil{
+			point tmp <- {rnd(100),rnd(100)};
+			
+			bool conflicts<-false;
+			
+			ask Stage{
+				if tmp distance_to(self.location) < myself.maxDistancePoint{
+					conflicts<-true;
+				}
+			}
+			
+			ask Cantine {
+				if tmp distance_to(self.location) < myself.maxDistancePoint{
+					conflicts<-true;
+				}	
+			}
+			
+			if !conflicts{
+				targetPoint<-tmp;
+			}
+		}
+		
+	}
+	
+	//Chooses where to move if it has appeared
+	reflex dissappear when: appeared and moved and ownTime > 200 and flip(0.9) and darthOnOff{
+		ownTime<-0;
+		appeared<-false;
+		moved<-false;
+		location<-{-100,-100};
+		targetPoint<-nil;
+		
+		write 'DARTH VADER HAS DISAPPEARED!';		
+	}
+	
+	//Goes to selected point and stops if close
+	reflex goToDest when: targetPoint != nil{
+		if location distance_to(targetPoint) > maxDistancePoint{
+			do goto target: targetPoint;
+		}else{
+			do wander speed: 0.1;
+			moved<-true;
+		}
+		
+	}
+	
+	aspect default{
+		if darthOnOff{
+			//draw shape size: 8 at: location color: rgb(40, 40, 40) rotate: 90.0::{-1,0,0};
+			draw cube(5.5) at: location color: #black;
+		}
+	}
+}
+
+species Yoda skills: [fipa,moving]{
+
+	geometry shape <- obj_file("yoda.obj") as geometry;
+	
+	init{
+		location<-{50,50};
+	}
+	
+	reflex wand when: yodaOnOff{
+		do wander speed: 0.05;
+	}
+	
+	aspect default{
+		if yodaOnOff{
+			//draw shape at: location color: #green size: 10 rotate: 90.0::{-1,0,0};
+			draw cube(5.5) at: location color: #green;
+		}
+	}
+}
+
 
 species Stage skills: [fipa]{
 
@@ -707,7 +995,7 @@ species Stage skills: [fipa]{
 	// 3 = Disney
 	int currentShow;
 
-	int showTime;
+	int showTime<-0;
 
 	//Initialization
 	init{
@@ -727,9 +1015,8 @@ species Stage skills: [fipa]{
 		// 1 = OT
 		// 2 = Preq
 		// 3 = Disney
-		currentShow <- rnd (1,3);
-		
-		showTime <-0;
+		currentShow <- order;
+
 	}
 	
 	//Generates a new concert and sends an inform message to all the people
@@ -788,6 +1075,8 @@ species Stage skills: [fipa]{
 }
 
 species Cantine {
+	
+	gif_file f <-gif_file("cantine.gif");
 
 	//Initialization
 	init{
@@ -796,8 +1085,6 @@ species Cantine {
 	
 	
 	aspect default{
-		
-		gif_file f <-gif_file("cantine.gif");
 		draw f size: {30,15};
 		//draw cube(7) at: location color: #green;
 	}
@@ -805,21 +1092,17 @@ species Cantine {
 
 
 experiment Project type: gui {
-	parameter "Logs for cantine: " var: logCantine category: "Logs" enables: [logCantineOTFans,logCantinePrequelFans,logCantineDisneySWFans];
-	parameter "Logs for stages: " var: logStages category: "Logs" enables: [logStagesOTFans,logStagesPrequelFans,logStagesDisneySWFans];
 	
-	parameter "Logs for OTFans: " var: logOTFans category: "Logs" enables: [logCantineOTFans,logStagesOTFans];
-	parameter "Logs for PrequelFans: " var: logPrequelFans category: "Logs" enables: [logCantinePrequelFans,logStagesPrequelFans];
-	parameter "Logs for DisneySWFans: " var: logDisneySWFans category: "Logs" enables: [logCantineDisneySWFans,logStagesDisneySWFans];
+	parameter "Darth Vader" var: darthOnOff category: "Agents";
+	parameter "Yoda" var: yodaOnOff category: "Agents";	
 	
-	parameter "Logs for OTFans in cantine: " var: logCantineOTFans category: "Logs";
-	parameter "Logs for PrequelFans in cantine: " var: logCantinePrequelFans category: "Logs";
-	parameter "Logs for DisneySWFans in cantine: " var: logCantineDisneySWFans category: "Logs";
 	
-	parameter "Logs for OTFans in stages: " var: logStagesOTFans category: "Logs";
-	parameter "Logs for PrequelFans in stages: " var: logStagesPrequelFans category: "Logs";
-	parameter "Logs for DisneySWFans in stages: " var: logStagesDisneySWFans category: "Logs";
+	parameter "Logs for cantine" var: logCantine category: "Logs";
+	parameter "Logs for stages" var: logStages category: "Logs";
 	
+	parameter "Logs for OTFans" var: logOTFans category: "Logs";
+	parameter "Logs for PrequelFans" var: logPrequelFans category: "Logs";
+	parameter "Logs for DisneySWFans " var: logDisneySWFans category: "Logs";
 	
 	
 	output {
@@ -827,6 +1110,8 @@ experiment Project type: gui {
 			species Stage;
 			species Cantine;
 			species OTFan;
+			species DarthVader;
+			species Yoda;
 			species PrequelsFan;
 			species DisneySWFan;
 		}
