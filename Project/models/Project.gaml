@@ -999,6 +999,7 @@ species DarthVader skills: [fipa,moving]{
 
 	float patience<-rnd(80,90)/10;
 	float stressed <-0.0;
+	float stressLevel<-0.0;
 
 	//Related to moving and surrounding
 	point targetPoint<- nil;
@@ -1103,11 +1104,11 @@ species DarthVader skills: [fipa,moving]{
 	
 	reflex get_stressed when: darthOnOff and stressed <= 0.0{
 		
-		float points<- OTFanPref *length(agents_at_distance(maxDistanceRadius) of_species (OTFan)) +
+		stressLevel<- OTFanPref *length(agents_at_distance(maxDistanceRadius) of_species (OTFan)) +
 		PreqFanPref *length(agents_at_distance(maxDistanceRadius) of_species (PrequelsFan)) +
 		DisneyFanPref *length(agents_at_distance(maxDistanceRadius) of_species (DisneySWFan));
 		
-		if points > patience{
+		if stressLevel > patience{
 			write "DARTH VADER IS STRESSED AND SCARES SOME PEOPLE!";
 			stressed<-maxDistanceRadius;	
 			do start_conversation (to:: list(agents_at_distance(maxDistanceRadius)), protocol:: 'fipa-contract-net', performative:: 'inform', contents:: ['GO AWAY!']);
@@ -1147,6 +1148,7 @@ species Yoda skills: [fipa,moving]{
 	float patience<-rnd(100,130)/10;
 	bool needToMove<-false;
 	bool stressed <-false;
+	float stressLevel<-0.0;
 	
 	DarthVader vader;
 	
@@ -1172,11 +1174,11 @@ species Yoda skills: [fipa,moving]{
 	
 	reflex get_stressed when: stopped and yodaOnOff and !needToMove and !stressed{
 		
-		float points<- OTFanPref *length(agents_at_distance(maxDistanceRadius) of_species (OTFan)) +
+		stressLevel<- OTFanPref *length(agents_at_distance(maxDistanceRadius) of_species (OTFan)) +
 		PreqFanPref *length(agents_at_distance(maxDistanceRadius) of_species (PrequelsFan)) +
 		DisneyFanPref *length(agents_at_distance(maxDistanceRadius) of_species (DisneySWFan));
 		
-		if points > patience{
+		if stressLevel > patience{
 			write "----Yoda: I'm stressed, moving to another place";
 			needToMove<-true;
 			stressed<-true;	
@@ -1364,21 +1366,20 @@ experiment Project type: gui {
 			species DisneySWFan;
 		}
 		
-		/*display Hunger refresh:every(1#cycles) {
-		    chart "Hunger Means" type: series size: {1,1} position: {0, 0}  x_range: 400 y_range: {0,250}{
+		display Charts refresh:every(1#cycles) {
+		    chart "Hunger Means" type: series size: {1,0.5} position: {0, 0}  x_range: 400 y_range: {0,250}{
 			    data "OTFan" value:  mean (OTFan collect each.hunger) color:#blue;
 			    data "PrequelsFan" value: mean (PrequelsFan collect each.hunger) color:#red;
 			    data "DisneySWFan" value: mean (DisneySWFan collect each.hunger) color:#orange;
 		    }	
-		}*/
-		
-		
-		/*display Hunger refresh:every(1#cycles) {
-		    chart "Hunger Means" type: histogram background: #lightgray size: {1,1} position: {0, 0} y_range: {0,150}{
-			    data "OTFan" value:  mean (OTFan collect each.hunger) color:#red;
-			    data "PrequelsFan" value: mean (PrequelsFan collect each.hunger) color:#cyan;
-			    data "DisneySWFan" value: mean (DisneySWFan collect each.hunger) color:#green;
+		    
+		    chart "Stress Levels" type: series size: {1,0.5} position: {0, 0.5}  x_range: 400 y_range: {0,15}{
+			    data "Yoda" value:  Yoda collect each.stressLevel color:#green;
+			    data "Yoda limit" value:  Yoda collect each.patience color:#lime;
+			    data "Darth Vader" value:  DarthVader collect each.stressLevel color:#black;
+			    data "Darth Vader limit" value:  DarthVader collect each.patience color:#grey;
 		    }	
-		}*/
+		}
+	
 	}
 }
