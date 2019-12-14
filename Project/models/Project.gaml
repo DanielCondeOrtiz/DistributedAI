@@ -27,6 +27,10 @@ global {
 			
 		}
 		
+		create Yoda number: 1{
+			
+		}
+		
 		create Cantine number: 1{
 			
 		}
@@ -36,11 +40,6 @@ global {
 		}
 		
 		create OTFan number: 20{
-			
-		}
-		
-		
-		create Yoda number: 1{
 			
 		}
 		
@@ -79,6 +78,9 @@ species OTFan skills: [fipa,moving]{
 	bool goingWithVader<-false;
 	bool movedVader<-false;
 	
+	Yoda yoda;
+	bool goingWithYoda<-false;
+	
 	//Son
 	DisneySWFan child<-nil;
 	
@@ -102,6 +104,10 @@ species OTFan skills: [fipa,moving]{
 		ask DarthVader{
 			myself.vader<-self;
 		}
+		
+		ask Yoda{
+			myself.yoda<-self;
+		}
 	}
 	
 	
@@ -115,6 +121,7 @@ species OTFan skills: [fipa,moving]{
 			targetPoint<-cantineLocation;
 			needToEat <- true;
 			goingWithVader<-false;
+			goingWithYoda<-false;
 			
 			scoreCurrentShow<-0.0;
 			currentShow<-nil;
@@ -130,7 +137,8 @@ species OTFan skills: [fipa,moving]{
 		if hunger > 200 and flip(0.8){
 			needToEat<- false;
 			targetPoint<-nil;
-			goingWithVader<-false;	
+			goingWithVader<-false;
+			goingWithYoda<-false;
 			
 			previouslyChecked<-false;	
 		}
@@ -153,7 +161,8 @@ species OTFan skills: [fipa,moving]{
 				
 				needToEat<- false;
 				targetPoint<-nil;
-				goingWithVader<-false;				
+				goingWithVader<-false;
+				goingWithYoda<-false;			
 				
 				if hunger < 100{
 					hunger<-100;
@@ -213,18 +222,29 @@ species OTFan skills: [fipa,moving]{
 					targetPoint<-currentShow.location;
 					scoreCurrentShow<-score;
 					goingWithVader<-false;
+					goingWithYoda<-false;
 				}
 			}
 			
 			//Darth Vader
 			else{
-				float score<-rnd(5,8)/10;
-				
-				if score > scoreCurrentShow and !needToEat{
-					currentShow<-nil;
-					targetPoint<-agent(i.sender).location;
-					scoreCurrentShow<-score;
-					goingWithVader<-true;
+				//Darth Vader appeared
+				if length(i.contents) > 1{
+					float score<-rnd(7,9)/10;
+					
+					if score > scoreCurrentShow and !needToEat{
+						currentShow<-nil;
+						targetPoint<-agent(i.sender).location;
+						scoreCurrentShow<-score;	
+						goingWithVader<-true;
+						goingWithYoda<-false;
+					}	
+				}
+				//Dart Vader scares people
+				else if flip(0.5) and !needToEat{
+					targetPoint<-{rnd(100),rnd(100)};
+					scoreCurrentShow<-0.0;	
+					goingWithVader<-false;
 				}
 			}
 		}
@@ -252,6 +272,7 @@ species OTFan skills: [fipa,moving]{
 				scoreCurrentShow<-score;
 				stopped<-false;
 				goingWithVader<-false;
+				goingWithYoda<-false;
 			}
 		
 		}
@@ -279,6 +300,7 @@ species OTFan skills: [fipa,moving]{
 				
 				targetPoint<-child.location;
 				goingWithVader<-false;
+				goingWithYoda<-false;
 	}
 	
 	//Reads agrees from child when they move
@@ -291,7 +313,6 @@ species OTFan skills: [fipa,moving]{
 	reflex followVader when: goingWithVader and vader.moved and !movedVader{
 		movedVader<-true;
 		targetPoint<-vader.location;
-
 	}
 	
 	reflex notFollowVader when: goingWithVader and !vader.appeared{
@@ -301,7 +322,22 @@ species OTFan skills: [fipa,moving]{
 		scoreCurrentShow<-0.0;
 	}
 	
+	reflex chooseYodaRandom when: yodaOnOff and !needToEat and flip(0.005) and !goingWithYoda and !goingWithVader{
+		goingWithYoda<-true;
+		scoreCurrentShow<-rnd(5,7)/10;
+		currentShow<-nil;
+		targetPoint<-yoda.location;
+	}
 	
+	reflex followYoda when: goingWithYoda and mod(time,20)=0{
+		targetPoint<-yoda.location;
+	}
+	
+	reflex notFollowYoda when: goingWithYoda and flip(0.01){
+		goingWithYoda<-false;
+		targetPoint<-nil;
+		scoreCurrentShow<-0.0;
+	}
 	
 	//Chooses where to go next
 	reflex choosePlace when: targetPoint = nil{
@@ -310,9 +346,17 @@ species OTFan skills: [fipa,moving]{
 		if flip(0.05){
 			targetPoint <- {rnd(100),rnd(100)};
 			
-		}else if vader.appeared and flip(0.2){
+		}else if vader.appeared and darthOnOff and flip(0.2){
 			goingWithVader<-true;
 			targetPoint<-vader.location;
+			scoreCurrentShow<-rnd(7,9)/10;
+			currentShow<-nil;
+		}else if yodaOnOff and flip(0.2){
+			goingWithYoda<-true;
+			scoreCurrentShow<-rnd(5,7)/10;
+			currentShow<-nil;
+			targetPoint<-yoda.location;
+			
 		}else{
 			do start_conversation (to:: list(Stage), protocol:: 'fipa-contract-net', performative:: 'cfp', contents:: ['What is the show?']);
 		}
@@ -362,6 +406,9 @@ species PrequelsFan skills: [fipa,moving]{
 	DarthVader vader;
 	bool goingWithVader<-false;
 	bool movedVader<-false;
+	
+	Yoda yoda;
+	bool goingWithYoda<-false;
 
 	//Related to eating
 	int hunger<- rnd(200,250);
@@ -383,6 +430,10 @@ species PrequelsFan skills: [fipa,moving]{
 		ask DarthVader{
 			myself.vader<-self;
 		}
+		
+		ask Yoda{
+			myself.yoda<-self;
+		}
 	}
 	
 	//Drops 1 hunger point (0.8 probable)
@@ -395,6 +446,7 @@ species PrequelsFan skills: [fipa,moving]{
 			targetPoint<-cantineLocation;
 			needToEat <- true;
 			goingWithVader<-false;
+			goingWithYoda<-false;
 			
 			scoreCurrentShow<-0.0;
 			currentShow<-nil;
@@ -412,6 +464,7 @@ species PrequelsFan skills: [fipa,moving]{
 			targetPoint<-nil;		
 			alreadyAsked<-false;	
 			goingWithVader<-false;	
+			goingWithYoda<-false;
 		}
 		
 		
@@ -448,6 +501,7 @@ species PrequelsFan skills: [fipa,moving]{
 					scoreCurrentShow<-score;
 					stopped<-false;
 					goingWithVader<-false;
+					goingWithYoda<-false;
 				}
 			}else{
 				//Agrees
@@ -491,6 +545,7 @@ species PrequelsFan skills: [fipa,moving]{
 				
 				targetPoint <-cantineLocation;
 				goingWithVader<-false;
+				goingWithYoda<-false;
 			}
 			
 			//New show
@@ -510,17 +565,29 @@ species PrequelsFan skills: [fipa,moving]{
 					targetPoint<-currentShow.location;
 					scoreCurrentShow<-score;
 					goingWithVader<-false;
+					goingWithYoda<-false;
 				}
 			}
 			
-			//Darth Vader appeared
+			//Darth Vader 
 			else{
-				float score<-rnd(5,8)/10;
-				if score > scoreCurrentShow and !needToEat{
-					currentShow<-nil;
-					targetPoint<-agent(i.sender).location;
-					scoreCurrentShow<-score;	
-					goingWithVader<-true;
+				//Darth Vader appeared
+				if length(i.contents) > 1{
+					float score<-rnd(7,9)/10;
+					
+					if score > scoreCurrentShow and !needToEat{
+						currentShow<-nil;
+						targetPoint<-agent(i.sender).location;
+						scoreCurrentShow<-score;	
+						goingWithVader<-true;
+						goingWithYoda<-false;
+					}	
+				}
+				//Dart Vader scares people
+				else if flip(0.5) and !needToEat{
+					targetPoint<-{rnd(100),rnd(100)};
+					scoreCurrentShow<-0.0;	
+					goingWithVader<-false;
 				}
 			}
 			
@@ -559,14 +626,41 @@ species PrequelsFan skills: [fipa,moving]{
 	}
 	
 	
+	reflex chooseYodaRandom when: yodaOnOff and !needToEat and flip(0.005) and !goingWithYoda and !goingWithVader{
+		goingWithYoda<-true;
+		scoreCurrentShow<-rnd(5,7)/10;
+		currentShow<-nil;
+		targetPoint<-yoda.location;
+	}
+	
+	reflex followYoda when: goingWithYoda and mod(time,20)=0{
+		targetPoint<-yoda.location;
+	}
+	
+	reflex notFollowYoda when: goingWithYoda and flip(0.01){
+		goingWithYoda<-false;
+		targetPoint<-nil;
+		scoreCurrentShow<-0.0;
+	}
+	
 	//Chooses where to go next
 	reflex choosePlace when: targetPoint = nil{
+		
 		//0.1 probability to go to a random place
 		if flip(0.05){
 			targetPoint <- {rnd(100),rnd(100)};
-		}else if vader.appeared and flip(0.2){
+			
+		}else if vader.appeared and darthOnOff and flip(0.2){
 			goingWithVader<-true;
 			targetPoint<-vader.location;
+			scoreCurrentShow<-rnd(7,9)/10;
+			currentShow<-nil;
+		}else if yodaOnOff and flip(0.2){
+			goingWithYoda<-true;
+			scoreCurrentShow<-rnd(5,7)/10;
+			currentShow<-nil;
+			targetPoint<-yoda.location;
+			
 		}else{
 			do start_conversation (to:: list(Stage), protocol:: 'fipa-contract-net', performative:: 'cfp', contents:: ['What is the show?']);
 		}
@@ -613,7 +707,10 @@ species DisneySWFan skills: [fipa,moving]{
 	DarthVader vader;
 	bool goingWithVader<-false;
 	bool movedVader<-false;
-
+	
+	Yoda yoda;
+	bool goingWithYoda<-false;
+	
 	//Related to eating
 	int hunger<- rnd(200,250);
 	bool needToEat<- false;
@@ -649,6 +746,10 @@ species DisneySWFan skills: [fipa,moving]{
 		ask DarthVader{
 			myself.vader<-self;
 		}
+		
+		ask Yoda{
+			myself.yoda<-self;
+		}
 	}
 	
 	//Drops 1 hunger point (0.8 probable)
@@ -661,6 +762,7 @@ species DisneySWFan skills: [fipa,moving]{
 			targetPoint<-cantineLocation;
 			needToEat <- true;
 			goingWithVader<-false;
+			goingWithYoda<-false;
 			
 			scoreCurrentShow<-0.0;
 			currentShow<-nil;
@@ -694,7 +796,8 @@ species DisneySWFan skills: [fipa,moving]{
 			
 				needToEat<- false;
 				targetPoint<-nil;
-				goingWithVader<-false;				
+				goingWithVader<-false;	
+				goingWithYoda<-false;			
 				
 				if hunger < 100{
 					hunger<-100;
@@ -728,19 +831,31 @@ species DisneySWFan skills: [fipa,moving]{
 					targetPoint<-currentShow.location;
 					scoreCurrentShow<-score;
 					goingWithVader<-false;
+					goingWithYoda<-false;
 				}
 			}
 			
 			//Darth Vader
 			else{
-				float score<-rnd(5,8)/10;
-				
-				if score > scoreCurrentShow and !needToEat{
-					currentShow<-nil;
-					targetPoint<-agent(i.sender).location;
-					scoreCurrentShow<-score;	
-					goingWithVader<-true;
+				//Darth Vader appeared
+				if length(i.contents) > 1{
+					float score<-rnd(7,9)/10;
+					
+					if score > scoreCurrentShow and !needToEat{
+						currentShow<-nil;
+						targetPoint<-agent(i.sender).location;
+						scoreCurrentShow<-score;	
+						goingWithVader<-true;
+						goingWithYoda<-false;
+					}	
 				}
+				//Dart Vader scares people
+				else if flip(0.5) and !needToEat{
+					targetPoint<-{rnd(100),rnd(100)};
+					scoreCurrentShow<-0.0;	
+					goingWithVader<-false;
+				}
+				
 			}
 		}
 	}
@@ -765,6 +880,7 @@ species DisneySWFan skills: [fipa,moving]{
 				targetPoint<-currentShow.location;
 				scoreCurrentShow<-score;
 				goingWithVader<-false;
+				goingWithYoda<-false;
 			}
 		
 		}
@@ -792,6 +908,7 @@ species DisneySWFan skills: [fipa,moving]{
 				
 				targetPoint<-parent.location;
 				goingWithVader<-false;	
+				goingWithYoda<-false;
 	}
 	
 	reflex followVader when: goingWithVader and vader.moved and !movedVader{
@@ -807,16 +924,41 @@ species DisneySWFan skills: [fipa,moving]{
 		scoreCurrentShow<-0.0;
 	}
 	
+	reflex chooseYodaRandom when: yodaOnOff and !needToEat and flip(0.005) and !goingWithYoda and !goingWithVader{
+		goingWithYoda<-true;
+		scoreCurrentShow<-rnd(5,7)/10;
+		currentShow<-nil;
+		targetPoint<-yoda.location;
+	}
+	
+	reflex followYoda when: goingWithYoda and mod(time,20)=0{
+		targetPoint<-yoda.location;
+	}
+	
+	reflex notFollowYoda when: goingWithYoda and flip(0.01){
+		goingWithYoda<-false;
+		targetPoint<-nil;
+		scoreCurrentShow<-0.0;
+	}
 	
 	//Chooses where to go next
 	reflex choosePlace when: targetPoint = nil{
+		
 		//0.1 probability to go to a random place
 		if flip(0.05){
 			targetPoint <- {rnd(100),rnd(100)};
-			goingWithVader<-false;	
-		}else if vader.appeared and flip(0.2){
+			
+		}else if vader.appeared and darthOnOff and flip(0.2){
 			goingWithVader<-true;
 			targetPoint<-vader.location;
+			scoreCurrentShow<-rnd(7,9)/10;
+			currentShow<-nil;
+		}else if yodaOnOff and flip(0.2){
+			goingWithYoda<-true;
+			scoreCurrentShow<-rnd(5,7)/10;
+			currentShow<-nil;
+			targetPoint<-yoda.location;
+			
 		}else{
 			do start_conversation (to:: list(Stage), protocol:: 'fipa-contract-net', performative:: 'cfp', contents:: ['What is the show?']);
 		}
@@ -847,12 +989,22 @@ species DisneySWFan skills: [fipa,moving]{
 
 species DarthVader skills: [fipa,moving]{
 	
-	geometry shape <- obj_file("vader.obj") as geometry;
+	//geometry shape <- obj_file("vader.obj") as geometry;
+
+	//Related to others
+	//Preferences for types of fans
+	float OTFanPref<- rnd(3,10)/10;
+	float PreqFanPref<- rnd(3,10)/10;
+	float DisneyFanPref<- rnd(3,10)/10;
+
+	float patience<-rnd(80,90)/10;
+	float stressed <-0.0;
 
 	//Related to moving and surrounding
 	point targetPoint<- nil;
 	bool stopped<-false;
 	float maxDistancePoint<-20.0;
+	float maxDistanceRadius<-14.0;
 	
 	//Related to appearing and moving
 	bool appeared<-false;
@@ -864,9 +1016,13 @@ species DarthVader skills: [fipa,moving]{
 		location<-{-100,-100};
 	}
 	
-	reflex add_time{
+	reflex add_time when: darthOnOff{
 		if flip(0.9){
 			ownTime <- ownTime+1;
+		}
+		
+		if stressed > 0{
+			stressed <- stressed-0.35;
 		}
 	}
 	
@@ -945,41 +1101,123 @@ species DarthVader skills: [fipa,moving]{
 		write 'DARTH VADER HAS DISAPPEARED!';		
 	}
 	
+	reflex get_stressed when: darthOnOff and stressed <= 0.0{
+		
+		float points<- OTFanPref *length(agents_at_distance(maxDistanceRadius) of_species (OTFan)) +
+		PreqFanPref *length(agents_at_distance(maxDistanceRadius) of_species (PrequelsFan)) +
+		DisneyFanPref *length(agents_at_distance(maxDistanceRadius) of_species (DisneySWFan));
+		
+		if points > patience{
+			write "DARTH VADER IS STRESSED AND SCARES SOME PEOPLE!";
+			stressed<-maxDistanceRadius;	
+			do start_conversation (to:: list(agents_at_distance(maxDistanceRadius)), protocol:: 'fipa-contract-net', performative:: 'inform', contents:: ['GO AWAY!']);
+		}
+	}
+	
+	
 	//Goes to selected point and stops if close
-	reflex goToDest when: targetPoint != nil{
+	reflex goToDest when: targetPoint != nil and darthOnOff{
 		if location distance_to(targetPoint) > maxDistancePoint{
 			do goto target: targetPoint;
 		}else{
 			do wander speed: 0.1;
 			moved<-true;
 		}
-		
 	}
 	
 	aspect default{
 		if darthOnOff{
 			//draw shape size: 8 at: location color: rgb(40, 40, 40) rotate: 90.0::{-1,0,0};
 			draw cube(5.5) at: location color: #black;
+			draw circle(stressed) at: location color: #darkgrey;
 		}
 	}
 }
 
 species Yoda skills: [fipa,moving]{
 
-	geometry shape <- obj_file("yoda.obj") as geometry;
+	//geometry shape <- obj_file("yoda.obj") as geometry;
+	
+	//Related to others
+	//Preferences for types of fans
+	float OTFanPref<- rnd(3,10)/10;
+	float PreqFanPref<- rnd(3,10)/10;
+	float DisneyFanPref<- rnd(3,10)/10;
+	
+	float patience<-rnd(100,130)/10;
+	bool needToMove<-false;
+	bool stressed <-false;
+	
+	DarthVader vader;
+	
+	//Related to moving and surrounding
+	point targetPoint<- nil;
+	bool stopped<-false;
+	float maxDistancePoint<-15.0;
+	float maxDistanceRadius<-13.0;
 	
 	init{
 		location<-{50,50};
+		targetPoint<- {50,50};
+		
+		ask DarthVader{
+			myself.vader<-self;
+		}
 	}
 	
-	reflex wand when: yodaOnOff{
-		do wander speed: 0.05;
+	reflex avoid_vader when: stopped and yodaOnOff and location distance_to(vader.location) < maxDistancePoint and !needToMove{
+		write "----Yoda: Avoiding DarthVader";
+		needToMove<-true;
+	}
+	
+	reflex get_stressed when: stopped and yodaOnOff and !needToMove and !stressed{
+		
+		float points<- OTFanPref *length(agents_at_distance(maxDistanceRadius) of_species (OTFan)) +
+		PreqFanPref *length(agents_at_distance(maxDistanceRadius) of_species (PrequelsFan)) +
+		DisneyFanPref *length(agents_at_distance(maxDistanceRadius) of_species (DisneySWFan));
+		
+		if points > patience{
+			write "----Yoda: I'm stressed, moving to another place";
+			needToMove<-true;
+			stressed<-true;	
+		}
+	}
+	
+	reflex choosePlace when: yodaOnOff and stopped and (mod(time,250)=0 or needToMove){
+		needToMove<-false;
+		
+		if float(location.x) <= 50 and float(location.y) <= 50{
+			targetPoint<-{rnd(60,90),rnd(10,40)};
+		}else if float(location.x) > 50 and float(location.y) <= 50{
+			targetPoint<-{rnd(60,90),rnd(60,90)};
+		}else if float(location.x) > 50 and float(location.y) > 50{
+			targetPoint<-{rnd(10,40),rnd(60,90)};
+		}else {
+			targetPoint<-{rnd(10,40),rnd(10,40)};
+		}
+	}
+	
+	//Goes to selected point and stops if close
+	reflex goToDest when: targetPoint != nil and yodaOnOff{
+		if location distance_to(targetPoint) > maxDistancePoint{
+			do goto target: targetPoint;
+			stopped<-false;
+		}else{
+			do wander speed: 0.1;
+			stopped<-true;
+			stressed<-false;
+		}
 	}
 	
 	aspect default{
 		if yodaOnOff{
 			//draw shape at: location color: #green size: 10 rotate: 90.0::{-1,0,0};
-			draw cube(5.5) at: location color: #green;
+			
+			if stressed{
+				draw box({8, 4 , 8}) at: location color: #lime;
+			}else{
+				draw box({8, 4 , 8}) at: location color: #green;
+			}
 		}
 	}
 }
@@ -1057,15 +1295,25 @@ species Stage skills: [fipa]{
 	aspect default{
 		image_file f;
 		
+		point position;
+		
+		if order = 1{
+			position<-location+{0,3};
+		}else if order = 2{
+			position<-location+{5,0};
+		}else{
+			position<-location-{0,3};
+		}
+		
 		if currentShow = 1{
 			f<-image_file("Orig.jpeg");
-			draw f size: {20,20};
+			draw f size: {18,18} at: position;
 		} else if currentShow = 2{
 			f<-image_file("Prequel.jpeg");
-			draw f size: {20,20};
+			draw f size: {18,18} at: position;
 		} else{
 			f<-image_file("disney.jpg");
-			draw f size: {25,15};
+			draw f size: {22,13} at: position;
 		}
 		
 		
@@ -1085,7 +1333,7 @@ species Cantine {
 	
 	
 	aspect default{
-		draw f size: {30,15};
+		draw f size: {30,15} at: location -{12,0};
 		//draw cube(7) at: location color: #green;
 	}
 }
