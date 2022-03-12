@@ -1,4 +1,4 @@
-# DAIIA
+# Distributed Artificial Intelligence 
 Distributed Artificial Intelligence and Intelligent Agents. Course ID2209 given at KTH Royal Institute of Technology.
 
 ## Labs 1, 2 and 3 
